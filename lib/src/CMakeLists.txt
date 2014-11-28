@@ -60,3 +60,16 @@ target_link_libraries(bundle
 #                      ${JSONCPP_LIBRARIES}
 #                      ${GTEST_LIBRARY}
 #                      )
+
+
+find_package(Boost REQUIRED)
+find_package(Boost COMPONENTS python)
+include_directories(${Boost_INCLUDE_DIRS})
+message(${Boost_INCLUDE_DIRS})
+
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
+message(${PYTHON_INCLUDE_DIRS})
+
+add_library(greet greet.cc)
+target_link_libraries(greet ${Boost_LIBRARIES})
