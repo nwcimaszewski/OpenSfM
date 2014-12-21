@@ -15,6 +15,7 @@
 
 DEFINE_string(input, "", "the training features file.");
 DEFINE_string(output, "", "the computed vocabulary file");
+DEFINE_int32(size, 2, "vocabulary size");
 
 
 void RandomSample(int k, int n, std::vector<int> *samples) {
@@ -122,7 +123,7 @@ int main(int argc, char** argv) {
   ReadFeatures(FLAGS_input.c_str(), &features);
   std::cerr << features.rows << " " << features.cols << " features read\n";
 
-  int k = 10000;
+  int k = FLAGS_size;
   std::cerr << "Compute Approximate K-Means K = " << k << "\n";
   ApproximateKMeans(features, k, &centers, &labels);
 
