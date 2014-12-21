@@ -45,6 +45,8 @@ find_package(Glog REQUIRED)
 include_directories(${GLOG_INCLUDE_DIR})
 
 find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
 
 add_executable(two_view_reconstruction
                two_view_reconstruction.cc
@@ -100,3 +102,10 @@ target_link_libraries(AKAZE_LIB ${OpenCV_LIBS})
 add_executable(akaze
                akaze.cpp)
 target_link_libraries(akaze AKAZE_LIB)
+
+add_executable(train_vocabulary train_vocabulary.cc)
+target_link_libraries(train_vocabulary
+                      ${GFLAGS_LIBRARY}
+                      ${GLOG_LIBRARY}
+                      ${OpenCV_LIBS}
+                      )
