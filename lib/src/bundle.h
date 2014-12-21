@@ -6,7 +6,7 @@
 #include <string>
 #include <json/json.h>
 
-extern "C" { 
+extern "C" {
 #include <string.h>
 }
 
@@ -50,6 +50,7 @@ struct Shot {
   double parameters[6];
   double gps_position[3];
   double gps_dop;
+  int exif_orientation;
   std::string camera;
   std::string id;
 };
@@ -113,7 +114,6 @@ class BALProblem {
     for (int i = 0; i < cameras_.size(); ++i) {
       camera_by_id_[cameras_[i].id] = &cameras_[i];
     }
-    std::cout << cameras_.size() << " cameras read." << std::endl;
 
 
     //////////////////////////////////////////////////////////////////
@@ -130,13 +130,13 @@ class BALProblem {
       for (int j = 0; j < 3; ++j)
         s.gps_position[j] = (*i)["gps_position"][j].asDouble();
       s.gps_dop = (*i)["gps_dop"].asDouble();
+      s.exif_orientation = (*i)["exif_orientation"].asInt();
       s.camera = (*i)["camera"].asString();
       shots_.push_back(s);
     }
     for (int i = 0; i < shots_.size(); ++i) {
       shot_by_id_[shots_[i].id] = &shots_[i];
     }
-    std::cout << shots_.size() << " shots read." << std::endl;
 
 
     //////////////////////////////////////////////////////////////////
@@ -153,7 +153,6 @@ class BALProblem {
     for (int i = 0; i < points_.size(); ++i) {
       point_by_id_[points_[i].id] = &points_[i];
     }
-    std::cout << points_.size() << " points read." << std::endl;
 
 
     //////////////////////////////////////////////////////////////////
@@ -173,7 +172,7 @@ class BALProblem {
 
       if (n != 5) break;
 
-      if (shot_by_id_.count(shot_id) && point_by_id_.count(point_id)) { 
+      if (shot_by_id_.count(shot_id) && point_by_id_.count(point_id)) {
         Observation o;
         o.shot = shot_by_id_[shot_id];
         o.camera = camera_by_id_[o.shot->camera];
@@ -183,7 +182,11 @@ class BALProblem {
         observations_.push_back(o);
       }
     }
-    std::cout << observations_.size() << " observations read." << std::endl;
+
+    std::cout << "Bundle starts " << cameras_.size() << " cameras, "
+              << shots_.size() << " shots, "
+              << points_.size() << " points, "
+              << observations_.size() << " observations" << std::endl;
 
     return true;
   }
@@ -224,6 +227,7 @@ class BALProblem {
       shot["translation"] = tarray;
       shot["gps_position"] = gpstarray;
       shot["gps_dop"] = shots_[i].gps_dop;
+      shot["exif_orientation"] = shots_[i].exif_orientation;
       shots[shots_[i].id] = shot;
     }
     root["shots"] = shots;
@@ -296,7 +300,7 @@ struct SnavelyReprojectionError {
     const T& l2 = camera[2];
     T r2 = xp * xp + yp * yp;
     T distortion = T(1.0) ;// + r2  * (l1 + l2  * r2);
-    
+
     // Compute final projected point position.
     const T& focal = (focal_ > 0.0) ? T(focal_) : camera[0];
     T predicted_x = focal * distortion * xp;
@@ -357,16 +361,16 @@ struct GPSPriorError {
 
 class TruncatedLoss : public ceres::LossFunction {
  public:
-  explicit TruncatedLoss(double t2)
-    : t2_(t2) {
-    CHECK_GT(t2, 0.0);
+  explicit TruncatedLoss(double t)
+    : t2_(t*t) {
+    CHECK_GT(t, 0.0);
   }
 
   virtual void Evaluate(double s, double rho[3]) const {
     if (s >= t2_) {
       // Outlier.
       rho[0] = t2_;
-      rho[1] = 0.000001;
+      rho[1] = std::numeric_limits<double>::min();
       rho[2] = 0.0;
     } else {
       // Inlier.

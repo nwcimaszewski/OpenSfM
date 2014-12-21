@@ -3,31 +3,51 @@ import os.path, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import os, sys
+import time
+from multiprocessing import Pool
+import numpy as np
 from opensfm import dataset
 from opensfm import features
+from opensfm import multiview
 
 def usage():
     print 'USAGE: %s data_set_path' % sys.argv[0]
     sys.exit(0)
 
-
-if len(sys.argv) > 1:
-    path = sys.argv[1]
-else:
-    usage()
-
-data = dataset.DataSet(path)
-images = data.images()
-
-
 def detect(image):
     print 'Extracting', data.feature_type().upper(), 'features for image', image
-    p1, f1 = features.extract_feature(data.image_file(image), data.config)
-    features.write_feature(p1, f1, data.feature_file(image))
-    print len(f1), 'points found. Building index...'
-    features.build_flann_index(f1, data.feature_index_file(image), data.config)
+    if not os.path.isfile(data.feature_index_file(image)):
+        p_unsorted, f_unsorted = features.extract_feature(data.image_file(image), data.config)
+        # camera = data.exif_data(image)
+        # if 'gopro' in camera['camera'].lower():
+        #     camera['focal'] = camera['focal_ratio']* np.max([camera['height'], camera['width']])
+        #     p_unsorted[:,0:2] = multiview.undistort_points(camera, p_unsorted[:,0:2].T).T
+        if data.feature_type() == 'akaze':
+            size = -p_unsorted[:, 2] # for AKAZE, this column is 1/(size^2)
+        else:
+            size = p_unsorted[:, 2]
+        order = np.argsort(size)
+        f_sorted = f_unsorted[order, :]
+        p_sorted = p_unsorted[order, :]
+        p_pre = p_sorted[-preemptive_max:]
+        f_pre = f_sorted[-preemptive_max:]
+        features.write_feature(p_sorted, f_sorted, data.feature_file(image), data.config)
+        features.write_feature(p_pre, f_pre, data.preemptive_feature_file(image), data.config)
+        features.build_flann_index(f_sorted, data.feature_index_file(image), data.config)
 
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        path = sys.argv[1]
+    else:
+        usage()
 
-from multiprocessing import Pool
-p = Pool(data.config['processes'])
-p.map(detect, images)
+    data = dataset.DataSet(path)
+    images = data.images()
+    preemptive_max = data.config.get('preemptive_max', 200)
+
+    start = time.time()
+    p = Pool(data.config['processes'])
+    p.map(detect, images)
+    end = time.time()
+    with open(data.profile_log(), 'a') as fout:
+        fout.write('detect_features: {0}\n'.format(end - start))

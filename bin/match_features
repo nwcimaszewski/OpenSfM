@@ -3,62 +3,106 @@ import os.path, sys
 import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from multiprocessing import Pool
 import numpy as np
 import cv2
 from itertools import combinations
 import argparse
 from opensfm import dataset
 from opensfm import features
-
-
-parser = argparse.ArgumentParser(description='Match features between all image pairs.')
-parser.add_argument('dataset',
-                    help='path to the dataset to be processed')
-args = parser.parse_args()
-
-
-data = dataset.DataSet(args.dataset)
-images = data.images()
-
-print 'Loading features and indexes'
-p, f = {}, {}
-index = {}
-preemptive_ids = {}
-for image in images:
-    p[image], f[image] = features.read_feature(data.feature_file(image))
-    index[image] = cv2.flann_Index()
-    index[image].load(f[image], data.feature_index_file(image))
-    sz = p[image][:,2]
-    order = np.argsort(sz)
-    preemptive_ids[image] = order[-data.config['preemptive_max']:]
+from opensfm import geo
 
 
 def match(imagepair):
-    im1, im2 = imagepair
-    print 'Matching image', im1, 'with image', im2,
+    im1, im2, i, n = imagepair
+    print 'Matching', data.config.get('feature_type').upper(), 'for image', im1, 'with image', im2, ' - ', i, '/', n, ' - ', 100 * i / n, '%'
+
+    matching_gps_distance = data.config.get('matching_gps_distance', 9999999)
+    robust_matching_min_match = data.config.get('robust_matching_min_match', 20)
+    preemptive_threshold = data.config.get('preemptive_threshold', 1)
+
+    # gps distance
+    distance = 0
+    if im1 in exifs and im2 in exifs:
+        gps1 = exifs[im1].get('gps',{})
+        gps2 = exifs[im2].get('gps',{})
+        if gps1 and gps2:
+            lon1, lat1 = gps1['longitude'], gps1['latitude']
+            lon2, lat2 = gps2['longitude'], gps2['latitude']
+            distance = geo.gps_distance([lon1,lat1], [lon2, lat2])
+    if distance > matching_gps_distance:
+        print "Discarding based on GPS distance {0} > {1}".format(distance, matching_gps_distance)
+        return
 
     # preemptive matching
     t = time.time()
-    matches_pre = features.match_lowe_bf(f[im1][preemptive_ids[im1],:],
-                                         f[im2][preemptive_ids[im2],:],
-                                         data.config)
-    print "\nPreemptive matching {0}, time : {1}".format(len(matches_pre), time.time()-t)
+    lowes_ratio = data.config.get('lowes_ratio', 0.6)
+    data.config['lowes_ratio'] = data.config.get('preemptive_lowes_ratio', 0.6)
+    matches_pre = features.match_lowe_bf(f_pre[im1], f_pre[im2], data.config)
+    data.config['lowes_ratio'] = lowes_ratio
+    print "Preemptive matching {0}, time: {1}s".format(len(matches_pre), time.time()-t)
+    if len(matches_pre) < preemptive_threshold:
+        print "Discarding based of preemptive matches {0} < {1}".format(len(matches_pre), preemptive_threshold)
+        return
 
-    if len(matches_pre) > data.config['preemptive_threshold']:
-        t = time.time()
-        matches = features.match_symmetric(f[im1], index[im1], f[im2], index[im2], data.config)
-        print 'flann matching time : ', time.time() - t
+    # symmetric matching
+    t = time.time()
+    p1, f1 = features.read_feature(data.feature_file(im1))
+    i1 = features.load_flann_index(f1, data.feature_index_file(im1))
 
-        if len(matches) < 20:
-            print "0 / {0} matches found".format(len(matches))
+    p2, f2 = features.read_feature(data.feature_file(im2))
+    i2 = features.load_flann_index(f2, data.feature_index_file(im2))
+
+    matches = features.match_symmetric(f1, i1, f2, i2, data.config)
+    if len(matches) < robust_matching_min_match:
+        return
+    print 'Full feature matching time of {0} - {2} : {1}s'.format(len(f1), time.time() - t, len(f2))
+
+
+    # robust matching
+    t_robust_matching = time.time()
+    rmatches = features.robust_match(p1, p2, matches, data.config)
+    if len(rmatches) < robust_matching_min_match:
+        return
+    print 'Robust matching time : {0}s'.format(time.time() - t_robust_matching)
+
+    np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
+    print "Full matching {0} / {1}, time: {2}s".format(len(rmatches), len(matches), time.time() - t)
+
+def image_pairs(images):
+    l = len(images)
+    n = l * (l - 1) / 2
+    for i, (a, b) in enumerate(combinations(images, 2)):
+        yield a, b, i, n
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Match features between all image pairs.')
+    parser.add_argument('dataset', help='path to the dataset to be processed')
+    args = parser.parse_args()
+
+    data = dataset.DataSet(args.dataset)
+    images = data.images()
+    matcher_type = data.matcher_type()
+
+    print 'Loading preemptive data'
+    exifs = {}
+    p_pre, f_pre = {}, {}
+    for image in images:
+        sys.stdout.write('.')
+        sys.stdout.flush()
+        p_pre[image], f_pre[image] = features.read_feature(data.preemptive_feature_file(image))
+        preemptive_max = min(data.config.get('preemptive_max', p_pre[image].shape[0]), p_pre[image].shape[0])
+        p_pre[image] = p_pre[image][:preemptive_max,:]
+        f_pre[image] = f_pre[image][:preemptive_max,:]
+        if not os.path.exists(data.exif_path()):
+            exifs[image] = data.exif_data(image)
         else:
-            rmatches = features.robust_match(p[im1], p[im2], matches, data.config)
-            if len(rmatches) >= 20:
-                np.savetxt(data.robust_matches_file(im1, im2), rmatches, "%d")
-            print "{0} / {1} matches found".format(len(rmatches), len(matches))
-    else:
-        print "Too few preemptive matches / {0} matches found".format(len(matches_pre))
+            exifs[image] = {}
 
-from multiprocessing import Pool
-p = Pool(data.config['processes'])
-p.map(match, combinations(images, 2))
+    start = time.time()
+    p = Pool(data.config['processes'])
+    p.map(match, image_pairs(images))
+    end = time.time()
+    with open(data.profile_log(), 'a') as fout:
+        fout.write('match_features: {0}\n'.format(end - start))

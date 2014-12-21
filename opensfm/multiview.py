@@ -9,7 +9,6 @@ import cv2
 from opensfm import transformations as tf
 from opensfm import context
 
-
 def nullspace(A):
     '''Compute the null space of A.
 
@@ -121,11 +120,19 @@ def vector_angle(u, v):
     >>> vector_angle(u, v)
     0.0
     '''
-    return math.acos(min(1, vector_cos(u, v)))
+    cos = np.dot(u, v) / math.sqrt(np.dot(u,u) * np.dot(v,v))
+    if cos >= 1.0: return 0.0
+    else: return math.acos(cos)
 
-def vector_cos(u, v):
-    return np.dot(u, v) / np.linalg.norm(u) / np.linalg.norm(v)
-
+def decompose_similarity_transform(T):
+    ''' Decompose the similarity transform to scale, rotation and translation
+    '''
+    m, n = T.shape[0:2]
+    assert(m==n)
+    A, b = T[:(m-1),:(m-1)], T[:(m-1),(m-1)]
+    s = np.linalg.det(A)**(1./(m-1))
+    A /= s
+    return s, A, b
 
 def triangulate(Ps, xs):
     '''
@@ -292,6 +299,7 @@ def fit_plane(points, vectors, verticals):
 
     return p
 
+
 def plane_horizontalling_rotation(p):
     '''Compute a rotation that brings p to z=0
 
@@ -305,3 +313,67 @@ def plane_horizontalling_rotation(p):
     return tf.rotation_matrix(tf.angle_between_vectors(v0, v1),
                               tf.vector_product(v0, v1)
                               )[:3,:3]
+
+
+def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
+    ''' Fit a similarity transform between two points sets
+    '''
+    # TODO (Yubin): adapt to RANSAC class
+
+    num_points, dim = p1.shape[0:2]
+
+    assert(p1.shape[0]==p2.shape[0])
+
+    best_inliers= 0
+
+    for i in xrange(max_iterations):
+
+        rnd = np.random.permutation(num_points)
+        rnd = rnd[0:dim]
+
+        T = tf.affine_matrix_from_points(p1[rnd,:].T, p2[rnd,:].T, shear=False)
+        p1h = homogeneous(p1)
+        p2h = homogeneous(p2)
+
+        errors = np.sqrt(np.sum( ( p2h.T - np.dot(T, p1h.T) ) ** 2 , axis=0 ) )
+
+        inliers = np.argwhere(errors < threshold)[:,0]
+
+        num_inliers = len(inliers)
+
+        if num_inliers >= best_inliers:
+            best_inliers = num_inliers
+            best_T = T.copy()
+            inliers = np.argwhere(errors < threshold)[:,0]
+
+    # Estimate similarity transform with inliers
+    if len(inliers)>dim+3:
+        best_T = tf.affine_matrix_from_points(p1[inliers,:].T, p2[inliers,:].T, shear=False)
+
+    return best_T, inliers
+
+
+def K_from_camera(camera):
+    f = float(camera['focal'])
+    w = camera['width']
+    h = camera['height']
+    return np.array([[f, 0., w / 2],
+                     [0., f, h / 2],
+                     [0., 0., 1.]])
+
+def undistort_points(camera, points):
+    ''' Undistort image points (2 x N array) with radial distortion
+    '''
+
+    num_point = points.shape[1]
+
+    points = points.T.reshape((num_point, 1, 2)).astype(np.float32)
+
+    distortion = np.array([camera['k1'], camera['k2'], 0., 0.])
+
+    K = K_from_camera(camera)
+    points_undistort = cv2.undistortPoints(points, K_from_camera(camera), distortion)
+    points_undistort = points_undistort.reshape((num_point, 2))
+    points_undistort = np.dot(K[0:2,:], homogeneous(points_undistort).T )
+
+    return points_undistort

@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import os, sys
+import tempfile
 import time
+from subprocess import call
 import numpy as np
 import json
 import uuid
 import cv2
+
+import context
 
 
 def extract_feature(imagefile, config):
@@ -13,9 +17,9 @@ def extract_feature(imagefile, config):
     image = cv2.imread(imagefile)
 
     # Resize the image
-    sz = np.max(np.array(image.shape[0:2]))
+    sz = np.array(image.shape[0:2])
     feature_process_size = config.get('feature_process_size', -1)
-    resize_ratio = feature_process_size / float(sz)
+    resize_ratio = feature_process_size / float(np.max(sz))
     if resize_ratio > 0 and resize_ratio < 1.0:
         image = cv2.resize(image, dsize=(0,0), fx=resize_ratio, fy=resize_ratio)
     else:
@@ -63,28 +67,117 @@ def extract_feature(imagefile, config):
             else:
                 print 'done'
                 break
+    elif feature_type == 'AKAZE':
+        threshold = config.get('akaze_dthreshold', 0.005)
+        config['akaze_resize_ratio'] = resize_ratio
+        while True:
+            print 'Computing AKAZE with threshold {0}'.format(threshold)
+            t = time.time()
+            config['akaze_dthreshold'] = threshold
+            points, desc = akaze_feature(imagefile, config)
+            print 'Found {0} points in {1}s'.format( len(points), time.time()-t )
+            if len(points) < config['feature_min_frames'] and threshold > 0.00001:
+                threshold = (threshold * 2) / 3
+                print 'reducing threshold'
+            else:
+                print 'done'
+                break
+    else:
+        ValueError('Unknown feature type (must be SURF, SIFT or AKAZE)')
 
-    points, desc = descriptor.compute(image, points)
-    ps = np.array([(i.pt[0]/resize_ratio, i.pt[1]/resize_ratio, i.size/resize_ratio, i.angle) for i in points])
+    if feature_type == 'SIFT' or feature_type == 'SURF':
+        points, desc = descriptor.compute(image, points)
+        ps = np.array([(i.pt[0]/resize_ratio, i.pt[1]/resize_ratio, i.size/resize_ratio, i.angle) for i in points])
+    else:
+        ps = points
+    masks = np.array(config.get('masks',[]))
+    for mask in masks:
+        mask = [mask[0]*sz[0], mask[1]*sz[1], mask[2]*sz[0], mask[3]*sz[1]]
+        ids  = np.invert ( (ps[:,1] > mask[0]) *
+                           (ps[:,1] < mask[2]) *
+                           (ps[:,0] > mask[1]) *
+                           (ps[:,0] < mask[3]) )
+        ps = ps[ids,:]
+        desc = desc[ids,:]
     return ps, desc
 
+def akaze_feature(imagefile, config):
+    ''' Extract AKAZE interest points and descriptors
+    '''
+    f = tempfile.NamedTemporaryFile(delete=False)
+    f.close()
+    featurefile = f.name
+    call([context.AKAZE,
+          imagefile,
+          "--output", featurefile,
+          "--dthreshold", str(config.get('akaze_dthreshold', 0.005)),
+          "--omax", str(config.get('akaze_omax', 4)),
+          "--min_dthreshold", str(config.get('akaze_min_dthreshold', 0.00001)),
+          "--descriptor", str(config.get('akaze_descriptor', 5)),
+          "--descriptor_size", str(config.get('akaze_descriptor_size', 0)),
+          "--descriptor_channels", str(config.get('akaze_descriptor_channels', 3)),
+          "--resize_ratio", str(config.get('akaze_resize_ratio', 1.0))
+        ])
+    with open(featurefile, 'rb') as fout:
+        lines = fout.readlines()
+        num_feature = int(lines[1])
+        dim_feature = int(lines[0])
+        if num_feature > 0:
+            lines = ''.join(lines[2:])
+            lines = lines.replace('\n',' ')[:-1].split(' ')
+            features = np.array(lines).reshape((num_feature, -1))
+            points, desc = features[:,:-dim_feature], features[:,-dim_feature:]
+            try:
+                # TODO (Yubin), better check for the feature format
+                desc = desc.astype(np.uint8)
+            except ValueError:
+                desc = desc.astype(np.float32)
 
-def write_feature(points, descriptors,featurefile):
-    a = np.hstack((points, descriptors))
-    s = np.savetxt(featurefile, a, fmt='%g')
+            points = points.astype(np.float)
+        else:
+            points, desc = [], []
+    return points, desc
+
+def write_feature(points, descriptors, featurefile, config={}):
+    if config.get('feature_type') == 'AKAZE' and config.get('akaze_descriptor') >= 4:
+        feature_data_type = np.uint8
+    else:
+        feature_data_type = np.float32
+
+    np.savez(featurefile,
+             points=points.astype(np.float32),
+             descriptors=descriptors.astype(feature_data_type))
 
 def read_feature(featurefile):
-    s = np.loadtxt(featurefile, dtype=np.float32)
-    return s[:,:4].copy(), s[:,4:].copy()
+    s = np.load(featurefile)
+    return s['points'], s['descriptors']
 
 
-def build_flann_index(f, index_file, config):
-    flann_params = dict(algorithm=2,
+def build_flann_index(features, index_file, config):
+    FLANN_INDEX_LINEAR          = 0
+    FLANN_INDEX_KDTREE          = 1
+    FLANN_INDEX_KMEANS          = 2
+    FLANN_INDEX_COMPOSITE       = 3
+    FLANN_INDEX_KDTREE_SINGLE   = 4
+    FLANN_INDEX_HIERARCHICAL    = 5
+    FLANN_INDEX_LSH             = 6
+
+    if features.dtype.type is np.float32:
+        FLANN_INDEX_METHOD = FLANN_INDEX_KMEANS
+    else:
+        FLANN_INDEX_METHOD = FLANN_INDEX_LSH
+
+    flann_params = dict(algorithm=FLANN_INDEX_METHOD,
                         branching=config['flann_branching'],
-                        terations=config['flann_iterations'])
-    index = cv2.flann_Index(f, flann_params)
+                        iterations=config['flann_iterations'])
+    index = cv2.flann_Index(features, flann_params)
     index.save(index_file)
 
+def load_flann_index(features, index_file):
+    index = cv2.flann_Index()
+    index.load(features, index_file)
+
+    return index
 
 def match_lowe(index, f2, config):
     search_params = dict(checks=config['flann_checks'])
@@ -96,8 +189,13 @@ def match_lowe(index, f2, config):
 
 
 def match_symmetric(fi, indexi, fj, indexj, config):
-    matches_ij = [(a,b) for a,b in match_lowe(indexi, fj, config)]
-    matches_ji = [(b,a) for a,b in match_lowe(indexj, fi, config)]
+    if config.get('matcher_type', 'FLANN') == 'FLANN':
+        matches_ij = [(a,b) for a,b in match_lowe(indexi, fj, config)]
+        matches_ji = [(b,a) for a,b in match_lowe(indexj, fi, config)]
+    else:
+        matches_ij = [(a,b) for a,b in match_lowe_bf(fi, fj, config)]
+        matches_ji = [(b,a) for a,b in match_lowe_bf(fj, fi, config)]
+
     matches = set(matches_ij).intersection(set(matches_ji))
     return np.array(list(matches), dtype=int)
 
@@ -114,15 +212,19 @@ def convert_matches_to_vector(matches):
     return matches_vector
 
 
-def match_lowe_bf(f1,f2,config):
+def match_lowe_bf(f1, f2, config):
     '''Bruteforce feature matching
     '''
-    matcher = cv2.DescriptorMatcher_create('BruteForce')
-    matches = matcher.knnMatch(f1,f2,k=2)
-
+    assert(f1.dtype.type==f2.dtype.type)
+    if (f1.dtype.type == np.uint8):
+        matcher_type = 'BruteForce-Hamming'
+    else:
+        matcher_type = 'BruteForce'
+    matcher = cv2.DescriptorMatcher_create(matcher_type)
+    matches = matcher.knnMatch(f1, f2, k=2 )
     good_matches = []
     for m,n in matches:
-        if m.distance < 0.6*n.distance:
+        if m.distance < config.get('lowes_ratio', 0.6)*n.distance:
             good_matches.append(m)
     good_matches = convert_matches_to_vector(good_matches)
     return np.array(good_matches, dtype=int)
@@ -141,4 +243,3 @@ def robust_match(p1, p2, matches, config):
     inliers = mask.ravel().nonzero()
 
     return matches[inliers]
-
