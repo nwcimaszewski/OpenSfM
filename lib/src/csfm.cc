@@ -10,7 +10,7 @@ namespace { // Avoid cluttering the global namespace.
   int square(int number) { return number * number; }
 }
 
-BOOST_PYTHON_MODULE(greet)
+BOOST_PYTHON_MODULE(csfm)
 {
   // Add regular functions to the module.
   def("greet", greet);
