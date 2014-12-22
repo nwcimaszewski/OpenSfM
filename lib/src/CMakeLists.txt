@@ -109,4 +109,8 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 
 add_library(csfm SHARED csfm.cc)
 target_link_libraries(csfm ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
-set_target_properties(csfm PROPERTIES PREFIX "" SUFFIX ".so")
+set_target_properties(csfm PROPERTIES
+    PREFIX ""
+    SUFFIX ".so"
+    LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/../../opensfm"
+)
