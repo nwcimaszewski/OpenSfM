@@ -107,6 +107,11 @@ include_directories(${Boost_INCLUDE_DIRS})
 find_package(PythonLibs REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 
+find_package(NumPy REQUIRED)
+include_directories(${NUMPY_INCLUDE_DIRS})
+message(${NUMPY_VERSION})
+message(${NUMPY_INCLUDE_DIRS})
+
 add_library(csfm SHARED csfm.cc)
 target_link_libraries(csfm ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 set_target_properties(csfm PROPERTIES
