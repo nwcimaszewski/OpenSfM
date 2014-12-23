@@ -8,6 +8,8 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h> 
 
+#include "train_vocabulary.cc"
+
 namespace bp = boost::python;
 namespace bpn = boost::python::numeric;
 
@@ -25,52 +27,70 @@ namespace {
   template <> int numpy_typenum<float>() { return NPY_FLOAT32; }
   template <> int numpy_typenum<double>() { return NPY_FLOAT64; }
 
-  bpn::array boost_ndarray_from_pyarray(PyObject *pyarray) {
+  template <typename T>
+  bp::object bpn_array_from_data(int nd, npy_intp *shape, const T *data) {
+    PyObject *pyarray = PyArray_SimpleNewFromData(
+        nd, shape, numpy_typenum<T>(), (void *)data);
     bp::handle<> handle(pyarray);
-    return bpn::array(handle);
-  }
-
-  bpn::array boost_ndarray_ravel(const bpn::array &array) {
-    PyObject *flat = PyArray_Ravel((PyArrayObject *)array.ptr(), NPY_ANYORDER);
-    return boost_ndarray_from_pyarray(flat);
+    return bpn::array(handle).copy(); // copy the object. numpy owns the copy now.
   }
 
   template <typename T>
-  bp::object boost_ndarray_from_data(int nd,
-                                              npy_intp *shape,
-                                              T *data) {
-    PyObject *pyObj = PyArray_SimpleNewFromData(
-        nd, shape, numpy_typenum<T>(), data);
-    return boost_ndarray_from_pyarray(pyObj).copy(); // copy the object. numpy owns the copy now.
-  }
-
-  template <typename T>
-  bp::object boost_ndarray_from_vector(std::vector<T> v) {
+  bp::object bpn_array_from_vector(const std::vector<T> &v) {
     npy_intp shape[] = { v.size() };
-    T *data = v.size() ? &v[0] : NULL;
-    return boost_ndarray_from_data(1, shape, data);
+    const T *data = v.size() ? &v[0] : NULL;
+    return bpn_array_from_data(1, shape, data);
   }
 
-  std::string greet() { return "hello, world"; }
-
-  bp::object square(int number) {
-    std::vector<double> s;
-    s.push_back(number);
-    s.push_back(number * number);
-    return boost_ndarray_from_vector(s);
+  template <typename T>
+  bp::object bpn_array_from_cvmat(const cv::Mat &m) {
+    npy_intp shape[] = { m.rows, m.cols };
+    const T *data = m.rows ? m.ptr<T>(0) : NULL;
+    return bpn_array_from_data(1, shape, data);
   }
 
-  float sum(bpn::array array) {
-    bpn::array flat = boost_ndarray_ravel(array);
-    PyArrayObject *pflat = (PyArrayObject *)flat.ptr();
-
-    double *data = (double *)PyArray_DATA(pflat);
-    int n = PyArray_DIMS(pflat)[0];
-    double s = 0;
-    for (int i = 0; i < n; ++i) {
-      s += data[i];
+  class PyArrayCvMatView {
+   public:
+    PyArrayCvMatView(bpn::array array) {
+      init((PyArrayObject *)array.ptr());
     }
-    return s;
+
+    PyArrayCvMatView(PyArrayObject *py_array) {
+      init(py_array);
+    }
+
+    ~PyArrayCvMatView() {
+      Py_DECREF(flat_);
+    }
+
+    const cv::Mat &get() const {
+      return cvmat_;
+    }
+
+   private:
+    void init(PyArrayObject *py_array) {
+      npy_intp *shape = PyArray_DIMS(py_array);
+      flat_ = (PyArrayObject *)PyArray_Ravel(py_array, NPY_ANYORDER);
+      cvmat_ = cv::Mat(shape[0], shape[1], CV_32F, PyArray_DATA(flat_));
+    };
+
+    cv::Mat cvmat_;
+    PyArrayObject *flat_;
+  };
+
+
+
+  bp::object approximate_k_means(bpn::array points, int k) {
+    PyArrayCvMatView cv_points(points);
+    cv::Mat centers;
+    std::vector<int> labels;
+
+    ApproximateKMeans(cv_points.get(), k, &centers, &labels);
+
+    bp::list retn;
+    retn.append(bpn_array_from_cvmat<float>(centers));
+    retn.append(bpn_array_from_vector(labels));
+    return retn;
   }
 }
 
@@ -80,7 +100,5 @@ BOOST_PYTHON_MODULE(csfm) {
   import_array();
 
   // Add regular functions to the module.
-  def("greet", greet);
-  def("square", square);
-  def("sum", sum);
+  def("approximate_k_means", approximate_k_means);
 }

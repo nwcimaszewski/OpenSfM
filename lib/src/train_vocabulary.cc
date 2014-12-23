@@ -1,21 +1,8 @@
-#include <cmath>
-#include <cstdio>
 #include <iostream>
-#include <fstream>
-#include <string>
-#include <ctime>
 #include <algorithm>
-#include <glog/logging.h>
-#include <gflags/gflags.h>
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/flann/flann.hpp"
-
-
-
-DEFINE_string(input, "", "the training features file.");
-DEFINE_string(output, "", "the computed vocabulary file");
-DEFINE_int32(size, 2, "vocabulary size");
 
 
 void RandomSample(int k, int n, std::vector<int> *samples) {
@@ -73,64 +60,3 @@ void ApproximateKMeans(const cv::Mat &points,
     std::cerr << "delta " << delta << std::endl;
   }
 }
-
-void ReadFeatures(const char *file, cv::Mat *features) {
-  std::ifstream fin(file);
-  std::vector<float> data;
-  std::string line;
-  int num_features = 0;
-  while(std::getline(fin, line)) {
-    std::istringstream s(line);
-    std::string word;
-    while (getline(s, word, ' ')) {
-      if (word.size()) {
-        data.push_back(std::stof(word));
-      }
-    }
-    num_features++;
-  }
-  int num_dims = data.size() / num_features;
-  
-  *features = cv::Mat(num_features, num_dims, cv::DataType<float>::type);
-  for (int i = 0; i < num_features; ++i) {
-    for (int j = 0; j < num_dims; ++j) {
-      (*features).at<float>(i,j) = data[i * num_dims + j];
-    }
-  }
-}
-
-void WriteFeatures(cv::Mat features, const char *file) {
-  std::ofstream fout(file);
-  for (int i = 0; i < features.rows; ++i) {
-    for (int j = 0; j < features.cols; ++j) {
-      fout << features.at<float>(i,j) << ((j == features.cols - 1) ? "\n" : " ");
-    }
-  }
-}
-
-int main(int argc, char** argv) {
-  google::InitGoogleLogging(argv[0]);
-  google::ParseCommandLineFlags(&argc, &argv, true);
-
-  if (!FLAGS_input.size() || !FLAGS_output.size()) {
-    std::cerr << "usage: simple_bundle_adjuster --input <features file> --output <vocabulary file>\n";
-    return 1;
-  }
-
-  std::cerr << "Reading features\n";
-  cv::Mat features, centers;
-  std::vector<int> labels;
-  ReadFeatures(FLAGS_input.c_str(), &features);
-  std::cerr << features.rows << " " << features.cols << " features read\n";
-
-  int k = FLAGS_size;
-  std::cerr << "Compute Approximate K-Means K = " << k << "\n";
-  ApproximateKMeans(features, k, &centers, &labels);
-
-  std::cerr << "Writing centers\n";
-  WriteFeatures(features, FLAGS_output.c_str());
-  std::cerr << "Done\n";
-
-  return 0;
-}
-

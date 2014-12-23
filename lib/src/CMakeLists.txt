@@ -115,17 +115,16 @@ message(${NUMPY_VERSION})
 message(${NUMPY_INCLUDE_DIRS})
 
 add_library(csfm SHARED csfm.cc)
-target_link_libraries(csfm ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
+target_link_libraries(csfm
+                      ${Boost_LIBRARIES}
+                      ${PYTHON_LIBRARIES}
+                      ${OpenCV_LIBS}
+                      ${GFLAGS_LIBRARY}
+                      ${GLOG_LIBRARY}
+)
 set_target_properties(csfm PROPERTIES
     PREFIX ""
     SUFFIX ".so"
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/../../opensfm"
 )
-
-add_executable(train_vocabulary train_vocabulary.cc)
-target_link_libraries(train_vocabulary
-                      ${GFLAGS_LIBRARY}
-                      ${GLOG_LIBRARY}
-                      ${OpenCV_LIBS}
-                      )
 
