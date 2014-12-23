@@ -36,7 +36,7 @@ namespace {
   }
 
   template <typename T>
-  bpn::object boost_ndarray_from_data(int nd,
+  bp::object boost_ndarray_from_data(int nd,
                                               npy_intp *shape,
                                               T *data) {
     PyObject *pyObj = PyArray_SimpleNewFromData(
@@ -45,7 +45,7 @@ namespace {
   }
 
   template <typename T>
-  bpn::object boost_ndarray_from_vector(std::vector<T> v) {
+  bp::object boost_ndarray_from_vector(std::vector<T> v) {
     npy_intp shape[] = { v.size() };
     T *data = v.size() ? &v[0] : NULL;
     return boost_ndarray_from_data(1, shape, data);

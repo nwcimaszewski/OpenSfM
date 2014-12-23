@@ -45,6 +45,8 @@ find_package(Glog REQUIRED)
 include_directories(${GLOG_INCLUDE_DIR})
 
 find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
 
 add_executable(two_view_reconstruction
                two_view_reconstruction.cc
@@ -119,3 +121,11 @@ set_target_properties(csfm PROPERTIES
     SUFFIX ".so"
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/../../opensfm"
 )
+
+add_executable(train_vocabulary train_vocabulary.cc)
+target_link_libraries(train_vocabulary
+                      ${GFLAGS_LIBRARY}
+                      ${GLOG_LIBRARY}
+                      ${OpenCV_LIBS}
+                      )
+
