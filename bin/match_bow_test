@@ -1,0 +1,223 @@
+#!/usr/bin/env python
+import os.path, sys
+import time
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from multiprocessing import Pool
+import numpy as np
+import pylab as pl
+import cv2
+from itertools import combinations
+import argparse
+from opensfm import dataset
+from opensfm import features
+from opensfm import geo
+
+
+class BagOfWords:
+    def __init__(self, words, frequencies):
+        self.words = words
+        self.frequencies = frequencies
+        self.weights = np.log(frequencies.sum() / frequencies)
+        FLANN_INDEX_KDTREE = 1
+        flann_params = dict(algorithm=FLANN_INDEX_KDTREE,
+                            trees=4)
+        self.index = cv2.flann_Index(words, flann_params)
+
+    def map_to_words(self, descriptors):
+        idx, dist = self.index.knnSearch(descriptors, 1, params = {'checks': 200})
+        return idx[:,0]
+
+    def bow_distance(self, w1, w2):
+        h1 = np.bincount(w1, minlength=len(self.words)) * self.weights
+        h1 /= h1.sum()
+        h2 = np.bincount(w2, minlength=len(self.words)) * self.weights
+        h2 /= h2.sum()
+        return np.fabs(h1 - h2).sum()
+
+    def match_using_words(self, f1, w1, f2, w2):
+        matcher = cv2.DescriptorMatcher_create('BruteForce')
+
+        index2 = {}
+        for i, w in enumerate(w2):
+            if w in index2:
+                index2[w].append(i)
+            else:
+                index2[w] = [i]
+
+
+        idx, dist = self.index.knnSearch(f1, 20, params = {'checks': 200})
+
+        matches = []
+        for i, f in enumerate(f1):
+            candidates = []
+            candidatesj = []
+            for w in idx[i]:
+                if w in index2:
+                    for j in index2[w]:
+                        candidates.append(f2[j])
+                        candidatesj.append(j)
+
+            if candidates:
+                m = matcher.knnMatch(f1[[i,]], np.array(candidates), k=2)
+                if len(m[0]) == 1:
+                    j = candidatesj[m[0][0].trainIdx]
+                    matches.append((i, j))
+                else:
+                    if m[0][0].distance < 0.6 * m[0][1].distance:
+                        j = candidatesj[m[0][0].trainIdx]
+                        matches.append((i, j))
+
+
+        return matches
+
+# class InvertedIndex:
+#     def __init__(self):
+#         self.index = {}
+
+#     def add_image(self, key, words):
+#         for i, w in enumerate(words):
+#             if not w in self.index:
+#                 self.index[w] = {}
+#             if key not in self.index[w]:
+#                 self.index[w][key] = []
+#             self.index[w][key].append(i)
+
+#     def find_matching_images(self, words):
+#         features_by_image = {}
+#         for w in words:
+#             for key in self.index[w]:
+#                 if key not in features_by_image:
+#                     features_by_image[key] = []
+#                 features_by_image.extend(seld.index[w][key])
+#         return features_by_image
+
+
+def match_using_words_single(f1, w1, f2, w2):
+    matcher = cv2.DescriptorMatcher_create('BruteForce')
+
+    index2 = {}
+    for i, w in enumerate(w2):
+        if w in index2:
+            index2[w].append(i)
+        else:
+            index2[w] = [i]
+
+    matches = []
+    for i, w in enumerate(w1):
+        if w in index2:
+            candidates = f2[index2[w]]
+            m = matcher.knnMatch(f1[[i,]], candidates, k=2)
+            if len(m[0]) == 1:
+                j = index2[w][m[0][0].trainIdx]
+                matches.append((i, j))
+            else:
+                if m[0][0].distance < 0.6 * m[0][1].distance:
+                    j = index2[w][m[0][0].trainIdx]
+                    matches.append((i, j))
+
+
+    return matches
+
+
+
+def match_using_words_symmetric(bow, f1, w1, f2, w2):
+    matches_ij = [(a,b) for a,b in bow.match_using_words(f1, w1, f2, w2)]
+    matches_ji = [(b,a) for a,b in bow.match_using_words(f2, w2, f1, w1)]
+    matches = set(matches_ij).intersection(set(matches_ji))
+    return list(matches)
+
+def match_bf_symmetric(f1, f2, config):
+    matches_ij = [(a,b) for a,b in features.match_lowe_bf(f1, f2, config)]
+    matches_ji = [(b,a) for a,b in features.match_lowe_bf(f2, f1, config)]
+    matches = set(matches_ij).intersection(set(matches_ji))
+    return list(matches)
+
+
+
+def plot_features(im, p):
+    pl.imshow(im)
+    pl.plot(p[:,0],p[:,1],'ob')
+    pl.show()
+
+
+def plot_matches(im1, im2, p1, p2):
+    h1, w1, c = im1.shape
+    h2, w2, c = im1.shape
+    image = np.zeros((max(h1,h2), w1+w2, 3), dtype=im1.dtype)
+    image[0:h1, 0:w1, :] = im1
+    image[0:h2, w1:(w1+w2), :] = im2
+    
+    pl.imshow(image)
+    for a1, a2 in zip(p1,p2):
+        pl.plot([a1[0], a2[0] + w1], [a1[1], a2[1]], 'c')
+
+    pl.plot(p1[:,0], p1[:,1], 'ob')
+    pl.plot(p2[:,0] + w1, p2[:,1], 'ob')
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Match features between all image pairs.')
+    parser.add_argument('dataset', help='path to the dataset to be processed')
+    args = parser.parse_args()
+
+    data = dataset.DataSet(args.dataset)
+    images = data.images()
+
+    words = np.load('words_random_large.npy')
+    frequencies = np.load('frequencies_random_large.npy')
+
+    bow = BagOfWords(words, frequencies)
+
+    for im1, im2 in combinations(images, 2):
+        p1, d1 = features.read_feature(data.feature_file(im1))
+        p2, d2 = features.read_feature(data.feature_file(im2))
+        w1 = bow.map_to_words(d1)
+        w2 = bow.map_to_words(d2)
+        data.config['lowes_ratio'] = 0.6
+
+        bow_distance = bow.bow_distance(w1, w2)
+        print im1, 'vs', im2, ' bow_distance', bow_distance
+        print 'num features', len(d1), len(d2)
+        if bow_distance < 10000:
+            print 'bf'
+            matches_bf = match_bf_symmetric(d1, d2, data.config)
+            print 'words'
+            matches_words = match_using_words_symmetric(bow, d1, w1, d2, w2)
+            print 'before fundamental  BF/words/common:', len(matches_bf), len(matches_words), len(set(matches_words) & set(matches_bf))
+
+            rmatches_bf = features.robust_match(p1, p2, np.array(matches_bf), data.config)
+            rmatches_words = features.robust_match(p1, p2, np.array(matches_words), data.config)
+            rmatches_bf = [(a,b) for a,b in rmatches_bf]
+            rmatches_words = [(a,b) for a,b in rmatches_words]
+            print 'after fundamental   BF/words/common:', len(rmatches_bf), len(rmatches_words), len(set(rmatches_words) & set(rmatches_bf))
+
+
+            # pl.subplot(211)
+            # plot_matches(data.image_as_array(im1),
+            #              data.image_as_array(im2),
+            #              p1[[i for i,j in rmatches_bf]],
+            #              p2[[j for i,j in rmatches_bf]])
+            # pl.subplot(212)
+            # plot_matches(data.image_as_array(im1),
+            #              data.image_as_array(im2),
+            #              p1[[i for i,j in rmatches_words]],
+            #              p2[[j for i,j in rmatches_words]])
+            # pl.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

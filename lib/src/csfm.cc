@@ -81,12 +81,14 @@ namespace {
 
 
   bp::object approximate_k_means(bpn::array points,
+                                 bpn::array initial_centers,
                                  int k, 
                                  int max_iterations,
                                  float tolerance,
                                  int num_kdtrees,
                                  int kdtree_checks) {
     PyArrayCvMatView cv_points(points);
+    PyArrayCvMatView cv_initial_centers(initial_centers);
     cv::Mat centers;
     std::vector<int> labels;
 
@@ -94,7 +96,7 @@ namespace {
                                    tolerance,
                                    num_kdtrees,
                                    kdtree_checks);
-    ApproximateKMeans(cv_points.get(), k, params, &centers, &labels);
+    ApproximateKMeans(cv_points.get(), cv_initial_centers.get(), k, params, &centers, &labels);
 
     bp::list retn;
     retn.append(bpn_array_from_cvmat<float>(centers));
@@ -112,8 +114,8 @@ BOOST_PYTHON_MODULE(csfm) {
   def("approximate_k_means", approximate_k_means,
       (arg("max_iterations") = 100,
        arg("tolerance") = 1e-6,
-       arg("num_kdtrees") = 4,
-       arg("kdtree_check") = 32
+       arg("num_kdtrees") = 8,
+       arg("kdtree_check") = 200
       )
   );
 }

@@ -20,10 +20,10 @@ struct ApproximateKMeansParams {
   float tolerance;
   int num_kdtrees;
   int kdtree_checks;
-  ApproximateKMeansParams(int max_iterations = 100,
-                          float tolerance = 1e-6,
-                          int num_kdtrees = 4,
-                          int kdtree_checks = 32
+  ApproximateKMeansParams(int max_iterations,
+                          float tolerance,
+                          int num_kdtrees,
+                          int kdtree_checks
   ) : max_iterations(max_iterations),
       tolerance(tolerance),
       num_kdtrees(num_kdtrees),
@@ -32,6 +32,7 @@ struct ApproximateKMeansParams {
 };
 
 void ApproximateKMeans(const cv::Mat &points,
+                       const cv::Mat &initial_centers,
                        int k,
                        const ApproximateKMeansParams &params,
                        cv::Mat *centers,
@@ -42,10 +43,14 @@ void ApproximateKMeans(const cv::Mat &points,
   cv::Mat old_centers = cv::Mat(k, d, CV_32F);
   labels->resize(n);
 
-  std::vector<int> samples;
-  RandomSample(k, n, &samples);
-  for (int i = 0; i < k; ++i) {
-    points.row(samples[i]).copyTo(centers->row(i));
+  if (initial_centers.rows == k && initial_centers.cols == d) {
+    initial_centers.copyTo(*centers);
+  } else {
+    std::vector<int> samples;
+    RandomSample(k, n, &samples);
+    for (int i = 0; i < k; ++i) {
+      points.row(samples[i]).copyTo(centers->row(i));
+    }
   }
 
   float delta = params.tolerance;
@@ -56,9 +61,11 @@ void ApproximateKMeans(const cv::Mat &points,
     cvflann::KDTreeIndexParams indexParams(params.num_kdtrees);
     cvflann::SearchParams searchParams(params.kdtree_checks);
 
+    std::cerr << "Building centers' index\n";
     cv::flann::GenericIndex< cvflann::L2<float> > index(*centers, indexParams);
     cv::Mat nn(n, 1, CV_32S), dist(n, 1, CV_32F);
     int label_changes = 0;
+    std::cerr << "Labeling\n";
     index.knnSearch(points, nn, dist, 1, searchParams);
     for (int i = 0; i < n; ++i) {
       int new_label = nn.at<int>(i, 0);
@@ -67,6 +74,8 @@ void ApproximateKMeans(const cv::Mat &points,
         label_changes++;
       }
     }
+
+    std::cerr << "Recomputing centers\n";
 
     // Recompute centers
     std::swap(*centers, old_centers);
