@@ -1,8 +1,8 @@
 
 # Params for features
-feature_type: AKAZE            # Feature type (SURF, SIFT)
-feature_min_frames: 10000      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
-feature_process_size: 2048    # Resize the image if its size is larger than specified. Set to -1 for original size
+feature_type: SIFT            # Feature type (SURF, SIFT)
+feature_min_frames: -1      # If fewer frames are detected, sift_peak_threshold/surf_hessian_threshold is reduced.
+feature_process_size: 1024    # Resize the image if its size is larger than specified. Set to -1 for original size
 
 # Params for SIFT
 sift_peak_threshold: 0.04     # Smaller value -> more features
@@ -42,7 +42,7 @@ preemptive_threshold: 1               # If number of matches passes the threshol
 preemptive_matching_gps_distance: 300 # Maximum gps distance between two images for preemptive matching
 
 # Params for geometric estimation
-robust_matching_threshold: 3          # Outlier threshold (in pixels) for fundamental matrix estimation
+robust_matching_threshold: 5          # Outlier threshold (in pixels) for fundamental matrix estimation
 robust_matching_min_match: 20         # Minimum number of matches to be considered as an edge in the match grph
 five_point_algo_threshold: 5          # Outlier threshold (in pixels) for essential matrix estimation
 five_point_algo_min_inliers: 20       # Minimum number of inliers for considering a two view reconstruction valid.

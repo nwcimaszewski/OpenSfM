@@ -1,0 +1,186 @@
+#!/usr/bin/env python
+import os.path, sys
+import time
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from multiprocessing import Pool
+import numpy as np
+import pylab as pl
+import cv2
+from itertools import combinations
+import argparse
+from opensfm import dataset
+from opensfm import features
+from opensfm import geo
+
+
+class BagOfWords:
+    def __init__(self, words, frequencies):
+        self.words = words
+        self.frequencies = frequencies
+        self.weights = np.log(frequencies.sum() / frequencies)
+        FLANN_INDEX_KDTREE = 1
+        flann_params = dict(algorithm=FLANN_INDEX_KDTREE,
+                            trees=4)
+        self.index = cv2.flann_Index(words, flann_params)
+
+    def map_to_words(self, descriptors, k):
+        idx, dist = self.index.knnSearch(descriptors, k, params = {'checks': 200})
+        return idx
+
+    def histogram(self, words):
+        h = np.bincount(words, minlength=len(self.words)) * self.weights
+        return h / h.sum()
+
+    def bow_distance(self, w1, w2):
+        h1 = self.histogram(w1)
+        h2 = self.histogram(w2)
+        return np.fabs(h1 - h2).sum()
+
+    def match_using_words(self, f1, w1, f2, w2):
+        matcher = cv2.DescriptorMatcher_create('BruteForce')
+
+        index2 = {}
+        for i, w in enumerate(w2):
+            if w in index2:
+                index2[w].append(i)
+            else:
+                index2[w] = [i]
+
+        matches = []
+        for i, f in enumerate(f1):
+            candidates = []
+            candidatesj = []
+            for w in w1[i]:
+                if w in index2:
+                    for j in index2[w]:
+                        candidates.append(f2[j])
+                        candidatesj.append(j)
+
+            if candidates:
+                m = matcher.knnMatch(f1[[i,]], np.array(candidates), k=2)
+                if len(m[0]) == 1:
+                    j = candidatesj[m[0][0].trainIdx]
+                    matches.append((i, j))
+                else:
+                    if m[0][0].distance < 0.6 * m[0][1].distance:
+                        j = candidatesj[m[0][0].trainIdx]
+                        matches.append((i, j))
+
+        return matches
+
+
+
+
+def plot_features(im, p):
+    pl.imshow(im)
+    pl.plot(p[:,0],p[:,1],'ob')
+    pl.show()
+
+
+def plot_matches(im1, im2, p1, p2):
+    h1, w1, c = im1.shape
+    h2, w2, c = im1.shape
+    image = np.zeros((max(h1,h2), w1+w2, 3), dtype=im1.dtype)
+    image[0:h1, 0:w1, :] = im1
+    image[0:h2, w1:(w1+w2), :] = im2
+    
+    pl.imshow(image)
+    for a1, a2 in zip(p1,p2):
+        pl.plot([a1[0], a2[0] + w1], [a1[1], a2[1]], 'c')
+
+    pl.plot(p1[:,0], p1[:,1], 'ob')
+    pl.plot(p2[:,0] + w1, p2[:,1], 'ob')
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Match features between all image pairs.')
+    parser.add_argument('dataset', help='path to the dataset to be processed')
+    parser.add_argument("--visual", help="plot matches")
+    args = parser.parse_args()
+
+    data = dataset.DataSet(args.dataset)
+    images = data.images()
+
+    words = np.load('words_random_large.npy')
+    frequencies = np.load('frequencies_random_large.npy')
+
+    bow = BagOfWords(words, frequencies)
+    histograms = {}
+    points = {}
+    descriptors = {}
+    words = {}
+
+    for im in images:
+        p, f = features.read_feature(data.feature_file(im))
+        closest_words = bow.map_to_words(f, 20)
+        h = bow.histogram(closest_words[:,0])
+        points[im] = p
+        descriptors[im] = f
+        words[im] = closest_words[:,0]
+        histograms[im] = h
+        # index1 = features.load_flann_index(descriptors[im], data.feature_index_file(im))
+        index1 = cv2.flann_Index(descriptors[im], dict(algorithm=1, trees=8))
+
+        distances = []
+        other = []
+        for im2 in histograms:
+            if im != im2:
+                distances.append(np.fabs(histograms[im] - histograms[im2]).sum())
+                other.append(im2)
+
+        for j in np.argsort(distances)[:10]:
+            im2 = other[j]
+            print im, im2, distances[j]
+
+            start = time.time()
+            matches_bf = features.match_lowe(index1, descriptors[im2], data.config)
+            # matches_bf = features.match_lowe_bf(descriptors[im], descriptors[im2], data.config)
+            # matches_bf = []
+            bf_time = time.time()
+            matches_words = bow.match_using_words(descriptors[im], closest_words, descriptors[im2], words[im2])
+            words_time = time.time()
+            print 'times bf/words', bf_time - start, words_time - bf_time
+            print 'before fundamental  BF/words/common:', len(matches_bf), len(matches_words), len(set([(a,b) for a,b in matches_words]) & set([(a,b) for a,b in matches_bf]))
+
+            rmatches_bf = features.robust_match(p, points[im2], np.array(matches_bf), data.config)
+            rmatches_words = features.robust_match(p, points[im2], np.array(matches_words), data.config)
+            rmatches_bf = [(a,b) for a,b in rmatches_bf]
+            rmatches_words = [(a,b) for a,b in rmatches_words]
+            print 'after fundamental   BF/words/common:', len(rmatches_bf), len(rmatches_words), len(set(rmatches_words) & set(rmatches_bf))
+
+            if len(rmatches_words) > data.config.get('robust_matching_min_match', 20):
+                if im < im2:
+                    np.savetxt(data.robust_matches_file(im, im2), rmatches_words, "%d")
+                else:
+                    np.savetxt(data.robust_matches_file(im2, im), [(b,a) for a,b in rmatches_words], "%d")
+
+            if args.visual:
+                pl.subplot(211)
+                plot_matches(data.image_as_array(im),
+                             data.image_as_array(im2),
+                             p[[i for i,j in rmatches_bf]],
+                             points[im2][[j for i,j in rmatches_bf]])
+                pl.subplot(212)
+                plot_matches(data.image_as_array(im),
+                             data.image_as_array(im2),
+                             p[[i for i,j in rmatches_words]],
+                             points[im2][[j for i,j in rmatches_words]])
+                pl.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
