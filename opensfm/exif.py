@@ -1,3 +1,4 @@
+#Some annotations added by Nicholas Cimaszewski on 2016/07/25
 import datetime
 import exifread
 import logging
@@ -74,12 +75,21 @@ def camera_id(make, model, width, height, projection_type, focal):
 
 
 def extract_exif_from_file(fileobj):
+    # If fileobj passed is of type str or unicode
     if isinstance(fileobj, (str, unicode)):
+        #then when passed fileobj is opened,
         with open(fileobj) as f:
+            #create EXIF obj passing fileobj passed to extract_exif_from_file (this function)
             exif_data = EXIF(f)
+    #but if it's not of type str or unicode
     else:
+        #don't open fileobj
         exif_data = EXIF(fileobj)
+    #So really, tests whether fileobj passed is str or unicode
+    #and then either opens and creates EXIF or creates EXIF without opening
+    #Either way, tags variable in EXIF comes from fileobj
 
+    #Then, extracts data from EXIF obj using methods defined in class
     d = exif_data.extract_exif()
     return d
 
@@ -117,6 +127,7 @@ class EXIF:
 
     def __init__(self, fileobj):
         self.tags = exifread.process_file(fileobj, details=False)
+        #creates instance variable tags from output of passing file obj passed to __init__ to exifread.process_file
         fileobj.seek(0)
         self.xmp = get_xmp(fileobj)
 

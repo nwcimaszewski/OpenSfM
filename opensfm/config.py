@@ -91,7 +91,7 @@ align_orientation_prior: horizontal   # horizontal, vertical or no_roll
 nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes
 nav_step_pref_distance: 6             # Preferred distance between camera centers
 nav_step_max_distance: 20             # Maximum distance for a possible step edge between two nodes
-nav_turn_max_distance: 15             # Maixmum distance for a possible turn edge between two nodes
+nav_turn_max_distance: 15             # Maximum distance for a possible turn edge between two nodes
 nav_step_forward_view_threshold: 15   # Maximum difference of angles in degrees between viewing directions for forward steps
 nav_step_view_threshold: 30           # Maximum difference of angles in degrees between viewing directions for other steps
 nav_step_drift_threshold: 36          # Maximum motion drift with respect to step directions for steps in degrees
