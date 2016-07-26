@@ -242,6 +242,13 @@ def extract_features(color_image, config):
     xs = points[:,0].round().astype(int)
     ys = points[:,1].round().astype(int)
     colors = color_image[ys, xs]
+    #Added by nick 2016/07/26
+    for rgb in colors:
+        if (rgb[0] >= 150 or rgb[0] <= 200) and (rgb[1] >= 150 or rgb[1] <= 200) and (rgb[2] >= 150 or rgb[2] <= 200) :
+            x = colors.index(rgb)
+            del colors[x]
+            del points[x]
+            del desc[x]
 
     return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], config)
 
