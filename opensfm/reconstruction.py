@@ -44,6 +44,8 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
             shot.metadata.gps_dop, False
         )
 
+
+
     for point in reconstruction.points.values():
         x = point.coordinates
         ba.add_point(str(point.id), x[0], x[1], x[2], False)
@@ -89,6 +91,8 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
     teardown = time.time()
 
     print 'setup/run/teardown {0}/{1}/{2}'.format(setup - start, run - setup, teardown - run)
+
+
 
 
 def bundle_single_view(graph, reconstruction, shot_id, config):
@@ -815,6 +819,17 @@ def incremental_reconstruction(data):
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions, key=lambda x: -len(x.shots))
                 data.save_reconstruction(reconstructions)
+    #Added by nick 2016/07/26
+    camsaver = open(data.data_path + '/camera_positions.txt', 'w')
+    for recon in reconstructions:
+        for shot in recon.shots.values():
+            r = shot.pose.rotation
+            t = shot.pose.translation
+            g = shot.metadata.gps_position
+            camsaver.write(str(shot.id) + '\n' + str(shot.camera.id) + '\n')
+            camsaver.write('rotation:' + str(r[0:3]) + '\n' 'translation:'+ str(t[0:3]) + '\n' + 'gps data (if applicable):' + str(g[0:3]) + '\n\n')
+    camsaver.close()
+
 
     for k, r in enumerate(reconstructions):
         print 'Reconstruction', k, ':', len(r.shots), 'images', ',', len(r.points),'points'
