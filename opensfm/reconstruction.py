@@ -746,7 +746,7 @@ def plot_gaze(reconstruction, data):
     gaze_points = fin.readlines()
     gaze_points_3d = []
     j = 0
-    for shot in reconstruction.shots.values():
+    for shot in sorted(reconstruction.shots.values()):
         K = shot.camera.get_K()
         R = shot.pose.rotation
         T = shot.pose.translation
@@ -787,7 +787,7 @@ def incremental_reconstruction(data):
             if reconstruction:
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
-                reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images)
+                reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
                 reconstruction = plot_gaze(reconstruction, data)#Added by nick 2016/07/29
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
