@@ -267,7 +267,7 @@ class Shot(object):
     """Defines a shot in a reconstructed scene.
 
     A shot here is refered as a unique view inside the scene defined by
-    the image filename (id), the used camera with its refined internal
+    the image filename (id), the used Ftr with its refined internal
     parameters (camera), the fully camera pose respect to the scene origin
     frame (pose) and the GPS data obtained in the moment that the picture
     was taken (metadata).

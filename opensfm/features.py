@@ -242,18 +242,19 @@ def extract_features(color_image, config):
     xs = points[:,0].round().astype(int)
     ys = points[:,1].round().astype(int)
     colors = color_image[ys, xs]
-    #Added by nick 2016/07/26
-    #This doesn't work -- when the range is set to 0-255, the reconstruction should be blank, but it doesn't look at all different
-    #And I don't get why...
-    #I should ask Zijun about this
-    for rgb in colors:
-        if (rgb[0] >= 0 or rgb[0] <= 255) and (rgb[1] >= 0 or rgb[1] <= 255) and (rgb[2] >= 0 or rgb[2] <= 255) :
-            x = colors.index(rgb)
-            del colors[x]
-            del points[x]
-            del desc[x]
 
-    #because there are no masks, this should just return the inputs
+    '''
+    #Added by nick 2016/07/26-28
+    i = 0
+    while i<colors.shape[0]:
+        rgb = colors[i]
+        if (rgb[0] >= 0 and rgb[0] <= 255) and (rgb[1] >= 0 and rgb[1] <= 255) and (rgb[2] >= 0 and rgb[2] <= 255) :
+            colors = np.delete(colors, i, axis=0)
+            points = np.delete(points, i, axis=0)
+            desc = np.delete(desc, i, axis=0)
+            i-=1
+        i+=1
+    '''
     return mask_and_normalize_features(points, desc, colors, image.shape[1], image.shape[0], config)
 
 

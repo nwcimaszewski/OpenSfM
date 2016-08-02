@@ -38,7 +38,7 @@ def euclidean(x):
     '''
     return x[..., :-1] / x[..., -1:]
 
-
+#2016/07/28 What are these two functions?  They look useful.  I still need the intrinsic parameters
 def P_from_KRt(K, R, t):
     '''P = K[R|t].
     '''

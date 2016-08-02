@@ -46,6 +46,7 @@ def bundle(graph, reconstruction, config, fix_cameras=False):
 
 
 
+
     for point in reconstruction.points.values():
         x = point.coordinates
         ba.add_point(str(point.id), x[0], x[1], x[2], False)
@@ -276,7 +277,6 @@ def bootstrap_reconstruction(data, graph, im1, im2):
     cameras = data.load_camera_models()
     camera1 = cameras[d1['camera']]
     camera2 = cameras[d2['camera']]
-
     tracks, p1, p2 = matching.common_tracks(graph, im1, im2)
     print 'Number of common tracks', len(tracks)
 
@@ -798,6 +798,35 @@ def tracks_and_images(graph):
             tracks.append(n[0])
     return tracks, images
 
+#Added by nick 2016/07/28-08/02
+def plot_gaze(reconstruction, data):
+    #gaze_coordinates.txt will be file where gaze coordinates are piped directly from ETG
+    fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
+    gaze_points = fin.readlines()
+    gaze_points_3d = []
+    j = 0
+    for shot in reconstruction.shots.values():
+        K = shot.camera.get_K()
+        R = shot.pose.rotation
+        T = shot.pose.translation
+        gaze_pts = gaze_points[j].split()
+        gx = float(gaze_pts[0])
+        gy = float(gaze_pts[1])
+        pt = types.Point()
+        #P =  multiview.P_from_KRt(K,R,T)
+        xy = np.array([[gx],[gy],[1]])
+        ink = np.linalg.inv(K)
+        locxyz = np.dot(ink,xy)
+        globxyz = np.dot(R,locxyz) + T
+        pt.coordinates = globxyz.tolist()
+        pt.color = [255, 0, 255] #Hot pink, should be distinctive enough
+        pt.id = 9999999999+j  #This is needed for more than one dot to show up
+        gaze_points_3d.append(pt)
+        j += 1
+    for pt in gaze_points_3d:
+        reconstruction.add_point(pt)
+    return reconstruction
+
 
 def incremental_reconstruction(data):
     data.invent_reference_lla()
@@ -816,19 +845,10 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images)
+                reconstruction = plot_gaze(reconstruction, data)#Added by nick 2016/07/29
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions, key=lambda x: -len(x.shots))
                 data.save_reconstruction(reconstructions)
-    #Added by nick 2016/07/26
-    camsaver = open(data.data_path + '/camera_positions.txt', 'w')
-    for recon in reconstructions:
-        for shot in recon.shots.values():
-            r = shot.pose.rotation
-            t = shot.pose.translation
-            g = shot.metadata.gps_position
-            camsaver.write(str(shot.id) + '\n' + str(shot.camera.id) + '\n')
-            camsaver.write('rotation:' + str(r[0:3]) + '\n' 'translation:'+ str(t[0:3]) + '\n' + 'gps data (if applicable):' + str(g[0:3]) + '\n\n')
-    camsaver.close()
 
 
     for k, r in enumerate(reconstructions):
