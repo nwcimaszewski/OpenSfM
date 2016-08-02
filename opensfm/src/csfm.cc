@@ -10,6 +10,7 @@
 #include "multiview.cc"
 #include "akaze.cc"
 #include "bundle.h"
+#include "openmvs_exporter.h"
 
 #if (PY_VERSION_HEX < 0x03000000)
 static void numpy_import_array_wrapper()
@@ -91,7 +92,9 @@ BOOST_PYTHON_MODULE(csfm) {
     .def("add_observation", &BundleAdjuster::AddObservation)
     .def("add_rotation_prior", &BundleAdjuster::AddRotationPrior)
     .def("add_translation_prior", &BundleAdjuster::AddTranslationPrior)
+    .def("add_position_prior", &BundleAdjuster::AddPositionPrior)
     .def("add_point_position_prior", &BundleAdjuster::AddPointPositionPrior)
+    .def("add_ground_control_point_observation", &BundleAdjuster::AddGroundControlPointObservation)
     .def("set_origin_shot", &BundleAdjuster::SetOriginShot)
     .def("set_unit_translation_shot", &BundleAdjuster::SetUnitTranslationShot)
     .def("set_loss_function", &BundleAdjuster::SetLossFunction)
@@ -124,10 +127,6 @@ BOOST_PYTHON_MODULE(csfm) {
     .add_property("tz", &BAShot::GetTZ, &BAShot::SetTZ)
     .def("get_covariance", &BAShot::GetCovariance)
     .def_readwrite("constant", &BAShot::constant)
-    .def_readwrite("gps_x", &BAShot::gps_x)
-    .def_readwrite("gps_y", &BAShot::gps_y)
-    .def_readwrite("gps_z", &BAShot::gps_z)
-    .def_readwrite("gps_dop", &BAShot::gps_dop)
     .def_readwrite("camera", &BAShot::camera)
     .def_readwrite("id", &BAShot::id)
   ;
@@ -139,5 +138,12 @@ BOOST_PYTHON_MODULE(csfm) {
     .def_readwrite("constant", &BAPoint::constant)
     .def_readwrite("reprojection_error", &BAPoint::reprojection_error)
     .def_readwrite("id", &BAPoint::id)
+  ;
+
+  class_<csfm::OpenMVSExporter>("OpenMVSExporter")
+    .def("add_camera", &csfm::OpenMVSExporter::AddCamera)
+    .def("add_shot", &csfm::OpenMVSExporter::AddShot)
+    .def("add_point", &csfm::OpenMVSExporter::AddPoint)
+    .def("export", &csfm::OpenMVSExporter::Export)
   ;
 }
