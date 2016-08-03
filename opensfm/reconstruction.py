@@ -746,7 +746,10 @@ def plot_gaze(reconstruction, data):
     gaze_points = fin.readlines()
     gaze_points_3d = []
     j = 0
-    for shot in sorted(reconstruction.shots.values()):
+    for shotid in sorted(reconstruction.shots):
+        shot = reconstruction.shots[shotid]
+        print 'SHOT'
+        print shot.id
         K = shot.camera.get_K()
         R = shot.pose.rotation
         T = shot.pose.translation
@@ -760,7 +763,7 @@ def plot_gaze(reconstruction, data):
         locxyz = np.dot(ink,xy)
         globxyz = np.dot(R,locxyz) + T
         pt.coordinates = globxyz.tolist()
-        pt.color = [255, 0, 255] #Hot pink, should be distinctive enough
+        pt.color = [0,255,0] #Bright green, should be distinctive enough
         pt.id = 9999999999+j  #This is needed for more than one dot to show up
         gaze_points_3d.append(pt)
         j += 1
