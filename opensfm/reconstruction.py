@@ -753,18 +753,18 @@ def plot_gaze(reconstruction, data):
         K = shot.camera.get_K()
         R = shot.pose.rotation
         T = shot.pose.translation
-        gaze_pts = gaze_points[j].split()
-        gx = float(gaze_pts[0])
-        gy = float(gaze_pts[1])
+        gaze_pts = gaze_points[j].split('\t')
+        gx = float(gaze_pts[3])
+        gy = float(gaze_pts[4])
         pt = types.Point()
         #P =  multiview.P_from_KRt(K,R,T)
         xy = np.array([[gx],[gy],[1]])
         ink = np.linalg.inv(K)
         locxyz = np.dot(ink,xy)
-        globxyz = np.dot(R,locxyz) + T
+        globxyz = np.dot(R,locxyz)+T
         pt.coordinates = globxyz.tolist()
         pt.color = [0,255,0] #Bright green, should be distinctive enough
-        pt.id = 9999999999+j  #This is needed for more than one dot to show up
+        pt.id = 999999999+j  #This is needed for more than one dot to show up
         gaze_points_3d.append(pt)
         j += 1
     for pt in gaze_points_3d:
