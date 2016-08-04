@@ -741,28 +741,40 @@ def tracks_and_images(graph):
 
 #Added by nick 2016/07/28-08/02
 def plot_gaze(reconstruction, data):
-    #gaze_coordinates.txt will be file where gaze coordinates are piped directly from ETG
+    #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
     fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
     gaze_points = fin.readlines()
     gaze_points_3d = []
     j = 0
     for shotid in sorted(reconstruction.shots):
         shot = reconstruction.shots[shotid]
-        print 'SHOT'
-        print shot.id
+        #print 'SHOT'
+        #print shot.id
         K = shot.camera.get_K()
+        #print 'K'
+        #print K
         R = shot.pose.rotation
+        #print 'R'
+        #print R
         T = shot.pose.translation
+        #print 'T'
+        #print T
         gaze_pts = gaze_points[j].split(', ')
         gx = float(gaze_pts[3])
         gy = float(gaze_pts[4])
         pt = types.Point()
         #P =  multiview.P_from_KRt(K,R,T)
         xy = np.array([[gx],[gy],[1]])
+        #print '2D gaze coordinates'
+        #print xy
         ink = np.linalg.inv(K)
         locxyz = np.dot(ink,xy)
-        globxyz = np.dot(R,locxyz)+T
+        #print '3D relative gaze coordinates'
+        #print locxyz
+        globxyz = np.dot(R,(locxyz+T)) #changed from globxyz = np.dot(R,locxyz)+T out of desparation
         pt.coordinates = globxyz.tolist()
+        #print '3D global gaze coordinates'
+        #print pt.coordinates
         pt.color = [0,255,0] #Bright green, should be distinctive enough
         pt.id = 999999999+j  #This is needed for more than one dot to show up
         gaze_points_3d.append(pt)
@@ -796,6 +808,9 @@ def incremental_reconstruction(data):
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
                 data.save_reconstruction(reconstructions)
+    for recon in reconstructions:
+        for pt in sorted(recon.points.values()):
+            print pt.id, pt.coordinates
 
     for k, r in enumerate(reconstructions):
         logger.info("Reconstruction {}: {} images, {} points".format(
