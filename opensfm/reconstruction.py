@@ -759,9 +759,9 @@ def plot_gaze(reconstruction, data):
         T = shot.pose.translation
         #print 'T'
         #print T
-        gaze_pts = gaze_points[j].split(', ')
-        gx = float(gaze_pts[3])
-        gy = float(gaze_pts[4])
+        gaze_pts = gaze_points[j].split()
+        gx = float(gaze_pts[0])
+        gy = float(gaze_pts[1])
         pt = types.Point()
         #P =  multiview.P_from_KRt(K,R,T)
         xy = np.array([[gx],[gy],[1]])
