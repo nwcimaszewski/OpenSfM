@@ -753,7 +753,7 @@ def plot_gaze(reconstruction, data):
         K = shot.camera.get_K()
         R = shot.pose.rotation
         T = shot.pose.translation
-        gaze_pts = gaze_points[j].split('\t')
+        gaze_pts = gaze_points[j].split(', ')
         gx = float(gaze_pts[3])
         gy = float(gaze_pts[4])
         pt = types.Point()
