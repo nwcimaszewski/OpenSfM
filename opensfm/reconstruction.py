@@ -750,7 +750,7 @@ def tracks_and_images(graph):
         shot = reconstruction.shots[shotid]
         K = shot.camera.get_K()
         R = shot.pose.get_rotation_matrix
-        T = shot.pose.translation"
+        T = shot.pose.translation
         gaze_pts = gaze_points[j].split()
         gx = float(gaze_pts[0])
         gy = float(gaze_pts[1])
@@ -760,7 +760,7 @@ def tracks_and_images(graph):
         locxyz = np.dot(ink,xy)
         xyz = shot.pose.transform_inverse(xy)
         globxyz = np.dot(R,locxyz)+T
-        pt.coordinates = globxyz.tolist
+        pt.coordinates = globxyz.tolist()
         pt.coordinates = xyz.tolist()
         pt.color = [0,255,0] #Bright green, should be distinctive enough
         pt.id = 999999999+j  #This is needed for more than one dot to show up
@@ -783,10 +783,13 @@ def plot_gaze(reconstruction, data):
         gx = float(gaze_pts[0])
         gy = float(gaze_pts[1])
         pt = types.Point()
-        xy = np.array([[gx],[gy],[1]])
-        xyz = shot.pose.transform_inverse(xy)
-        pt.coordinates = xyz.tolist
-        pt.color = [0,255,0] #Bright green, should be distinctive enough
+        xy = np.array([gx, gy, 1])
+        K = shot.camera.get_K()
+        ink = np.linalg.inv(K)
+        xyz = ink.dot(xy)
+        xyz = shot.pose.transform_inverse(xyz)
+        pt.coordinates = xyz.tolist()
+        pt.color = [255, 0, 255] #Bright green, should be distinctive enough
         pt.id = 999999999+j  #This is needed for more than one dot to show up
         gaze_points_3d.append(pt)
         j += 1
@@ -814,14 +817,14 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
-                #reconstruction = plot_gaze(reconstruction, data)#Added by nick 2016/07/29
+                reconstruction = plot_gaze(reconstruction, data)#Added by nick 2016/07/29
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
                 data.save_reconstruction(reconstructions)
-    for recon in reconstructions:
+    """for recon in reconstructions:
         for pt in sorted(recon.points.values()):
-            print pt, pt.id, pt.coordinates
+            print pt, pt.id, pt.coordinates"""
 
     for k, r in enumerate(reconstructions):
         logger.info("Reconstruction {}: {} images, {} points".format(
