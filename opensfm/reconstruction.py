@@ -771,7 +771,7 @@ def plot_gaze(reconstruction, data):
         locxyz = np.dot(ink,xy)
         #print '3D relative gaze coordinates'
         #print locxyz
-        globxyz = np.dot(R,(locxyz+T)) #changed from globxyz = np.dot(R,locxyz)+T out of desparation
+        globxyz = np.dot(R,locxyz)+T
         pt.coordinates = globxyz.tolist()
         #print '3D global gaze coordinates'
         #print pt.coordinates
