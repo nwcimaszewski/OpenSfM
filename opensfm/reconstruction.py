@@ -739,8 +739,9 @@ def tracks_and_images(graph):
             tracks.append(n[0])
     return tracks, images
 
-#Added by nick 2016/07/28-08/02
-"""def plot_gaze(reconstruction, data):
+"""
+#Added by nick 2016/07/28-08/05
+def plot_gaze1(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
     fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
     gaze_points = fin.readlines()
@@ -748,46 +749,26 @@ def tracks_and_images(graph):
     j = 0
     for shotid in sorted(reconstruction.shots):
         shot = reconstruction.shots[shotid]
-        K = shot.camera.get_K()
-        R = shot.pose.get_rotation_matrix
-        T = shot.pose.translation
         gaze_pts = gaze_points[j].split()
         gx = float(gaze_pts[0])
         gy = float(gaze_pts[1])
-        pt = types.Point()
-        xy = np.array([[gx],[gy],[1]])
-        ink = np.linalg.inv(K)
-        locxyz = np.dot(ink,xy)
-        xyz = shot.pose.transform_inverse(xy)
-        globxyz = np.dot(R,locxyz)+T
-        pt.coordinates = globxyz.tolist()
-        pt.coordinates = xyz.tolist()
-        pt.color = [0,255,0] #Bright green, should be distinctive enough
-        pt.id = 999999999+j  #This is needed for more than one dot to show up
-        gaze_points_3d.append(pt)
-        j += 1
-    for pt in gaze_points_3d:
-        reconstruction.add_point(pt)
-    return reconstruction"""
+        xy = np.array([gx, gy])
+        depth = #now how would I do this.  Maybe I could check for points in the reconstruction whose first and second coordinates are close enough to the gaze cursor in the given shot and then take that depth?
+        How would I do that...
+        loop through points, project into shot, check approximate equality, if true take depth, then feed depth to back_project
+        So really they're essentially the same problem, except in one I spawn a new point, which might look better
+        xyz = shot.back_project(xy,depth)
 
-#Added by nick 2016/07/28-08/02
-def plot_gaze(reconstruction, data):
-    #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
-    fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
-    gaze_points = fin.readlines()
-    gaze_points_3d = []
-    j = 0
-    for shotid in sorted(reconstruction.shots):
-        shot = reconstruction.shots[shotid]
-        gaze_pts = gaze_points[j].split()
-        gx = float(gaze_pts[0])
-        gy = float(gaze_pts[1])
+        """
+"""
         pt = types.Point()
         xy = np.array([gx, gy, 1])
         K = shot.camera.get_K()
         ink = np.linalg.inv(K)
         xyz = ink.dot(xy)
         xyz = shot.pose.transform_inverse(xyz)
+        """
+"""
         pt.coordinates = xyz.tolist()
         pt.color = [255, 0, 255] #Bright green, should be distinctive enough
         pt.id = 999999999+j  #This is needed for more than one dot to show up
@@ -795,6 +776,25 @@ def plot_gaze(reconstruction, data):
         j += 1
     for pt in gaze_points_3d:
         reconstruction.add_point(pt)
+    return reconstruction
+"""
+
+def plot_gaze2(reconstruction, data):
+    fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
+    gaze_points = fin.readlines()
+    j = 0
+    for shotid in sorted(reconstruction.shots):
+        shot = reconstruction.shots[shotid]
+        gaze_pts = gaze_points[j].split()
+        gx = float(gaze_pts[0])/shot.camera.width
+        gy = float(gaze_pts[1])/shot.camera.height
+        xy = np.array([gx, gy])
+        for pt in reconstruction.points.values():
+            pt2d = shot.project(pt.coordinates)
+            if np.allclose(pt2d, xy, atol = 0.05):
+                print 'MATCH!'
+                pt.color = [255, 0, 255]
+        j+=1
     return reconstruction
 
 
@@ -817,14 +817,11 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
-                reconstruction = plot_gaze(reconstruction, data)#Added by nick 2016/07/29
+                reconstruction = plot_gaze2(reconstruction, data)#Added by nick 2016/07/29
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
                 data.save_reconstruction(reconstructions)
-    """for recon in reconstructions:
-        for pt in sorted(recon.points.values()):
-            print pt, pt.id, pt.coordinates"""
 
     for k, r in enumerate(reconstructions):
         logger.info("Reconstruction {}: {} images, {} points".format(
