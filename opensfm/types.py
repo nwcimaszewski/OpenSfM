@@ -331,7 +331,7 @@ class GroundControlPointObservation(object):
 
     Attributes:
         id: identification of the
-        lla: latitue, longitude and altitude
+        lla: latitude, longitude and altitude
         coordinates: x, y, z coordinates in topocentric reference frame
         shot_id: the shot where the point is observed
         shot_coordinates: 2d coordinates of the observation
