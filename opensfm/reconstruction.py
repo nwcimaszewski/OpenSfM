@@ -739,42 +739,54 @@ def tracks_and_images(graph):
             tracks.append(n[0])
     return tracks, images
 
-"""
+
 #Added by nick 2016/07/28-08/05
 def plot_gaze1(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
     fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
     gaze_points = fin.readlines()
     gaze_points_3d = []
+    gaze_points_3d_filtered = []
     j = 0
-    for shotid in sorted(reconstruction.shots):
+    for shotid in sorted(reconstruction.shots): #loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
         shot = reconstruction.shots[shotid]
-        gaze_pts = gaze_points[j].split()
-        gx = float(gaze_pts[0])
-        gy = float(gaze_pts[1])
-        xy = np.array([gx, gy])
-        depth = #now how would I do this.  Maybe I could check for points in the reconstruction whose first and second coordinates are close enough to the gaze cursor in the given shot and then take that depth?
-        How would I do that...
-        loop through points, project into shot, check approximate equality, if true take depth, then feed depth to back_project
-        So really they're essentially the same problem, except in one I spawn a new point, which might look better
-        xyz = shot.back_project(xy,depth)
-
+        gaze_pts = gaze_points[j].split() #extracting gaze coordinates for current shot
+        gx = float(gaze_pts[0])/shot.camera.width #normalizing x
+        gy = float(gaze_pts[1])/shot.camera.height #normalizing y
+        xy = np.array([gx, gy]) #creating array of 2D gaze cursor coordinates
+        nearpoints = []
+        for pt in reconstruction.points.values(): #looping through every point in the reconstruction
+            pt2d = shot.project(pt.coordinates) #extracting 2D coordinates IN THIS SHOT for every point in reconstruction
+            if np.allclose(pt2d, xy, atol = 0.03): #if the pixel is close enough
+                depth = pt.coordinates[2]
+                #nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
+                #instead, I'll just take the last point close enough to cursor as pixel
         """
-"""
+        depthsum = 0
+        for pt in nearpoints:
+            depthsum += pt.coordinates[2] #take average depth of list of close points
+        depth = (depthsum/len(nearpoints)) #the points seem to not be projected deep enough
+        """
+        xyz = shot.back_project(xy, depth) #find real world 3D coordinates based off of xy and estimated depth
         pt = types.Point()
-        xy = np.array([gx, gy, 1])
-        K = shot.camera.get_K()
-        ink = np.linalg.inv(K)
-        xyz = ink.dot(xy)
-        xyz = shot.pose.transform_inverse(xyz)
-        """
-"""
         pt.coordinates = xyz.tolist()
-        pt.color = [255, 0, 255] #Bright green, should be distinctive enough
-        pt.id = 999999999+j  #This is needed for more than one dot to show up
-        gaze_points_3d.append(pt)
+        pt.color = [150, 0, 150]
+        pt.id = 1000000000+j  #This is needed for more than one dot to show up
+        if not np.array_equal(xy, np.zeros([1, 2])): #make sure to check if gaze coordinates are not (0, 0)
+            gaze_points_3d.append(pt)
         j += 1
-    for pt in gaze_points_3d:
+    #now this for loop checks for duplicates in gaze fixations, creates
+    for newpt in gaze_points_3d:
+        if not gaze_points_3d_filtered:
+            gaze_points_3d_filtered.append(newpt)
+        else:
+            for oldpt in gaze_points_3d_filtered:
+                if np.array_equal(oldpt.coordinates, newpt.coordinates):
+                    oldpt.color[0] += 15
+                    oldpt.color[2] += 15
+                else:
+                    gaze_points_3d_filtered.append(newpt)
+    for pt in gaze_points_3d_filtered:
         reconstruction.add_point(pt)
     return reconstruction
 """
@@ -789,7 +801,7 @@ def plot_gaze2(reconstruction, data):
         gx = float(gaze_pts[0])/shot.camera.width
         gy = float(gaze_pts[1])/shot.camera.height
         xy = np.array([gx, gy])
-        if not np.array_equal(xy, np.zeros(1,2)):
+        if not np.array_equal(xy, np.zeros([1,2])):
             for pt in reconstruction.points.values():
                 pt2d = shot.project(pt.coordinates)
                 if np.allclose(pt2d, xy, atol = 0.03):
@@ -800,7 +812,7 @@ def plot_gaze2(reconstruction, data):
                     #Also, possibly include scale on the side (gradient with seconds of frames marked out)
         j+=1
     return reconstruction
-
+"""
 
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
@@ -821,7 +833,7 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
-                reconstruction = plot_gaze2(reconstruction, data)#Added by nick 2016/07/29
+                reconstruction = plot_gaze1(reconstruction, data)#Added by nick 2016/07/29
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
