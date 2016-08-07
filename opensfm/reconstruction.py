@@ -789,7 +789,7 @@ def plot_gaze2(reconstruction, data):
         gx = float(gaze_pts[0])/shot.camera.width
         gy = float(gaze_pts[1])/shot.camera.height
         xy = np.array([gx, gy])
-        if not xy.array_equal(np.zeros(1,2)):
+        if not np.array_equal(xy, np.zeros(1,2)):
             for pt in reconstruction.points.values():
                 pt2d = shot.project(pt.coordinates)
                 if np.allclose(pt2d, xy, atol = 0.03):
