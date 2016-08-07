@@ -796,6 +796,7 @@ def plot_gaze2(reconstruction, data):
                     print 'MATCH!'
                     pt.color = [255, 0, 255]
                     #Perhaps I can add something that will change the color according to the frame number by including "j" in RGB values
+                    #Maybe have variable lastframe = number of shots, that divided by sample rate be incrementer?  But that might give too wide of a range, should keep it within some range of color (maybe from bright red to brigt green?; but 150 155 0 looks too natural)
                     #Also, possibly include scale on the side (gradient with seconds of frames marked out)
         j+=1
     return reconstruction
