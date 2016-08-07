@@ -795,6 +795,8 @@ def plot_gaze2(reconstruction, data):
                 if np.allclose(pt2d, xy, atol = 0.03):
                     print 'MATCH!'
                     pt.color = [255, 0, 255]
+                    #Perhaps I can add something that will change the color according to the frame number by including "j" in RGB values
+                    #Also, possibly include scale on the side (gradient with seconds of frames marked out)
         j+=1
     return reconstruction
 
