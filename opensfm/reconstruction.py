@@ -739,7 +739,7 @@ def tracks_and_images(graph):
             tracks.append(n[0])
     return tracks, images
 
-
+"""
 #Added by nick 2016/07/28-08/05
 def plot_gaze1(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
@@ -758,16 +758,17 @@ def plot_gaze1(reconstruction, data):
         for pt in reconstruction.points.values(): #looping through every point in the reconstruction
             pt2d = shot.project(pt.coordinates) #extracting 2D coordinates IN THIS SHOT for every point in reconstruction
             if np.allclose(pt2d, xy, atol = 0.03): #if the pixel is close enough
-                depth = pt.coordinates[2]
-                #nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
-                #instead, I'll just take the last point close enough to cursor as pixel
-        """
+                #print 'NEAR POINT DEPTH: ',  pt.coordinates[2]
+                nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
+                #instead, I'll just take the last point close enough to cursor as pixel -- nope, not working
+
         depthsum = 0
         for pt in nearpoints:
             depthsum += pt.coordinates[2] #take average depth of list of close points
-        depth = (depthsum/len(nearpoints)) #the points seem to not be projected deep enough
-        """
+        depth = (depthsum/float(len(nearpoints))) #the points seem to not be projected deep enough, maybe I'm not scaling them or something
+        #print 'INTENDED DEPTH', depth
         xyz = shot.back_project(xy, depth) #find real world 3D coordinates based off of xy and estimated depth
+        #print 'BACK PROJECTED POINT DEPTH: ', xyz[2]
         pt = types.Point()
         pt.coordinates = xyz.tolist()
         pt.color = [150, 0, 150]
@@ -775,7 +776,7 @@ def plot_gaze1(reconstruction, data):
         if not np.array_equal(xy, np.zeros([1, 2])): #make sure to check if gaze coordinates are not (0, 0)
             gaze_points_3d.append(pt)
         j += 1
-    #now this for loop checks for duplicates in gaze fixations, creates
+    #now this for loop checks for duplicates in gaze fixations, adds points to reconstruction
     for newpt in gaze_points_3d:
         if not gaze_points_3d_filtered:
             gaze_points_3d_filtered.append(newpt)
@@ -812,7 +813,7 @@ def plot_gaze2(reconstruction, data):
                     #Also, possibly include scale on the side (gradient with seconds of frames marked out)
         j+=1
     return reconstruction
-"""
+
 
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
@@ -833,7 +834,7 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
-                reconstruction = plot_gaze1(reconstruction, data)#Added by nick 2016/07/29
+                reconstruction = plot_gaze2(reconstruction, data)#Added by nick 2016/07/29
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
