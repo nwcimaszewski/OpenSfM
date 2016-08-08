@@ -739,7 +739,7 @@ def tracks_and_images(graph):
             tracks.append(n[0])
     return tracks, images
 
-"""
+
 #Added by nick 2016/07/28-08/05
 def plot_gaze1(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
@@ -809,11 +809,11 @@ def plot_gaze2(reconstruction, data):
                     print 'MATCH!'
                     pt.color = [255, 0, 255]
                     #Perhaps I can add something that will change the color according to the frame number by including "j" in RGB values
-                    #Maybe have variable lastframe = number of shots, that divided by sample rate be incrementer?  But that might give too wide of a range, should keep it within some range of color (maybe from bright red to brigt green?; but 150 155 0 looks too natural)
+                    #Maybe have variable lastframe = number of shots, that divided by sample rate be incrementer?  But that might give too wide of a range, should keep it within some range of color (maybe from bright red to bright green?; but 150 155 0 looks too natural)
                     #Also, possibly include scale on the side (gradient with seconds of frames marked out)
         j+=1
     return reconstruction
-
+"""
 
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
@@ -834,7 +834,7 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
-                reconstruction = plot_gaze2(reconstruction, data)#Added by nick 2016/07/29
+                reconstruction = plot_gaze1(reconstruction, data)#Added by nick 2016/07/29
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
