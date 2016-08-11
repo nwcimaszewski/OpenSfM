@@ -757,7 +757,7 @@ def plot_gaze(reconstruction, data):
         nearpoints = []
         for pt in reconstruction.points.values(): #looping through every point in the reconstruction
             pt2d = currentshot.project(pt.coordinates) #extracting 2D coordinates in current shot for every point in reconstruction
-            if np.allclose(pt2d, xy, atol = 0.03): #if the pixel is close enough
+            if np.allclose(pt2d, xy, atol = 0.06): #if the pixel is close enough
                 #print 'NEAR POINT DEPTH: ',  pt.coordinates[2]
                 nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
         xsum = 0
@@ -772,17 +772,16 @@ def plot_gaze(reconstruction, data):
             x = xsum/len(nearpoints)
             y = ysum / len(nearpoints)
             z = zsum / len(nearpoints)
+            xyz = [x, y, z]
+            pt = types.Point()
+            pt.coordinates = xyz
+            pt.color = [180, 0, 180]
+            pt.id = 1000000000 + j  # This is needed for more than one dot to show up
+            if not np.array_equal(xy, np.zeros([1, 2])):  # make sure to check if gaze coordinates are not (0, 0)
+                gaze_points_3d.append(pt)
+            j += 1
         else:
             print 'LOOKING TOO FAR AWAY'
-        xyz = [x,y,z]
-        #xyz = currentshot.back_project(xy, depth) # find real world 3D coordinates based off of xy and estimated depth
-        pt = types.Point()
-        pt.coordinates = xyz
-        pt.color = [180, 0, 180]
-        pt.id = 1000000000+j  #This is needed for more than one dot to show up
-        if not np.array_equal(xy, np.zeros([1, 2])): #make sure to check if gaze coordinates are not (0, 0)
-            gaze_points_3d.append(pt)
-        j += 1
     #now this for loop checks for duplicates in gaze fixations, adds points to reconstruction
     for newpt in gaze_points_3d:
         dup = False
