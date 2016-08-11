@@ -768,9 +768,12 @@ def plot_gaze(reconstruction, data):
             ysum += pt.coordinates[1]
             zsum += pt.coordinates[2]
             #distance = depth of each point as distance behind image
-        x = xsum/len(nearpoints)
-        y = ysum / len(nearpoints)
-        z = zsum / len(nearpoints)
+        if nearpoints:
+            x = xsum/len(nearpoints)
+            y = ysum / len(nearpoints)
+            z = zsum / len(nearpoints)
+        else:
+            print 'LOOKING TOO FAR AWAY'
         xyz = [x,y,z]
         #xyz = currentshot.back_project(xy, depth) # find real world 3D coordinates based off of xy and estimated depth
         pt = types.Point()
@@ -794,7 +797,6 @@ def plot_gaze(reconstruction, data):
             if dup == False:
                 gaze_points_3d_filtered.append(newpt)
     for pt in gaze_points_3d_filtered:
-        print pt.color
         reconstruction.add_point(pt)
     return reconstruction
 
