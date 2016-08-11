@@ -757,7 +757,7 @@ def plot_gaze(reconstruction, data):
         nearpoints = []
         for pt in reconstruction.points.values(): #looping through every point in the reconstruction
             pt2d = currentshot.project(pt.coordinates) #extracting 2D coordinates in current shot for every point in reconstruction
-            if np.allclose(pt2d, xy, atol = 0.1): #if the pixel is close enough
+            if np.allclose(pt2d, xy, atol = 0.1) or np.allclose(xy, pt2d, atol = 0.1): #if the pixel is close enough
                 #print 'NEAR POINT DEPTH: ',  pt.coordinates[2]
                 nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
         xsum = 0
@@ -797,7 +797,7 @@ def plot_gaze(reconstruction, data):
             if dup == False:
                 gaze_points_3d_filtered.append(newpt)
                 """
-    for pt in gaze_points_3d_filtered:
+    for pt in gaze_points_3d:#_filtered:
         reconstruction.add_point(pt)
     return reconstruction
 
