@@ -741,7 +741,7 @@ def tracks_and_images(graph):
 
 
 #Added by nick 2016/07/28-08/05
-def plot_gaze1(reconstruction, data):
+def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
     fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
     gaze_points = fin.readlines()
@@ -749,71 +749,54 @@ def plot_gaze1(reconstruction, data):
     gaze_points_3d_filtered = []
     j = 0
     for shotid in sorted(reconstruction.shots): #loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
-        shot = reconstruction.shots[shotid]
+        currentshot = reconstruction.shots[shotid]
         gaze_pts = gaze_points[j].split() #extracting gaze coordinates for current shot
-        gx = float(gaze_pts[0])/shot.camera.width #normalizing x
-        gy = float(gaze_pts[1])/shot.camera.height #normalizing y
+        gx = float(gaze_pts[0])/currentshot.camera.width #normalizing x
+        gy = float(gaze_pts[1])/currentshot.camera.height #normalizing y
         xy = np.array([gx, gy]) #creating array of 2D gaze cursor coordinates
         nearpoints = []
         for pt in reconstruction.points.values(): #looping through every point in the reconstruction
-            pt2d = shot.project(pt.coordinates) #extracting 2D coordinates IN THIS SHOT for every point in reconstruction
+            pt2d = currentshot.project(pt.coordinates) #extracting 2D coordinates in current shot for every point in reconstruction
             if np.allclose(pt2d, xy, atol = 0.03): #if the pixel is close enough
                 #print 'NEAR POINT DEPTH: ',  pt.coordinates[2]
                 nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
-                #instead, I'll just take the last point close enough to cursor as pixel -- nope, not working
-
-        depthsum = 0
+        xsum = 0
+        ysum = 0
+        zsum = 0
         for pt in nearpoints:
-            depthsum += pt.coordinates[2] #take average depth of list of close points
-        depth = (depthsum/float(len(nearpoints))) #the points seem to not be projected deep enough, maybe I'm not scaling them or something
-        #print 'INTENDED DEPTH', depth
-        xyz = shot.back_project(xy, depth) #find real world 3D coordinates based off of xy and estimated depth
-        #print 'BACK PROJECTED POINT DEPTH: ', xyz[2]
+            xsum += pt.coordinates[0]
+            ysum += pt.coordinates[1]
+            zsum += pt.coordinates[2]
+            #distance = depth of each point as distance behind image
+        x = xsum/len(nearpoints)
+        y = ysum / len(nearpoints)
+        z = zsum / len(nearpoints)
+        xyz = [x,y,z]
+        #xyz = currentshot.back_project(xy, depth) # find real world 3D coordinates based off of xy and estimated depth
         pt = types.Point()
-        pt.coordinates = xyz.tolist()
-        pt.color = [150, 0, 150]
+        pt.coordinates = xyz
+        pt.color = [180, 0, 180]
         pt.id = 1000000000+j  #This is needed for more than one dot to show up
         if not np.array_equal(xy, np.zeros([1, 2])): #make sure to check if gaze coordinates are not (0, 0)
             gaze_points_3d.append(pt)
         j += 1
     #now this for loop checks for duplicates in gaze fixations, adds points to reconstruction
     for newpt in gaze_points_3d:
-        if not gaze_points_3d_filtered:
+        dup = False
+        if not gaze_points_3d_filtered: #If filtered is empty -- if this is the first point being checked
             gaze_points_3d_filtered.append(newpt)
         else:
             for oldpt in gaze_points_3d_filtered:
-                if np.array_equal(oldpt.coordinates, newpt.coordinates):
+                if np.allclose(newpt.coordinates, oldpt.coordinates, rtol = .1):
                     oldpt.color[0] += 15
                     oldpt.color[2] += 15
-                else:
-                    gaze_points_3d_filtered.append(newpt)
+                    dup = True
+            if dup == False:
+                gaze_points_3d_filtered.append(newpt)
     for pt in gaze_points_3d_filtered:
+        print pt.color
         reconstruction.add_point(pt)
     return reconstruction
-"""
-
-def plot_gaze2(reconstruction, data):
-    fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
-    gaze_points = fin.readlines()
-    j = 0
-    for shotid in sorted(reconstruction.shots):
-        shot = reconstruction.shots[shotid]
-        gaze_pts = gaze_points[j].split()
-        gx = float(gaze_pts[0])/shot.camera.width
-        gy = float(gaze_pts[1])/shot.camera.height
-        xy = np.array([gx, gy])
-        if not np.array_equal(xy, np.zeros([1,2])):
-            for pt in reconstruction.points.values():
-                pt2d = shot.project(pt.coordinates)
-                if np.allclose(pt2d, xy, atol = 0.03):
-                    print 'MATCH!'
-                    pt.color = [255, 0, 255]
-                    #Perhaps I can add something that will change the color according to the frame number by including "j" in RGB values
-                    #Maybe have variable lastframe = number of shots, that divided by sample rate be incrementer?  But that might give too wide of a range, should keep it within some range of color (maybe from bright red to bright green?; but 150 155 0 looks too natural)
-                    #Also, possibly include scale on the side (gradient with seconds of frames marked out)
-        j+=1
-    return reconstruction
-"""
 
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
@@ -834,7 +817,7 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
-                reconstruction = plot_gaze1(reconstruction, data)#Added by nick 2016/07/29
+                reconstruction = plot_gaze(reconstruction, data)#Added by nick 2016/07/29
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
