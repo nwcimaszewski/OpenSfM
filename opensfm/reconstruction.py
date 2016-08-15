@@ -750,37 +750,38 @@ def plot_gaze(reconstruction, data):
     j = 0
     for shotid in sorted(reconstruction.shots): #loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
         currentshot = reconstruction.shots[shotid]
-        gaze_pts = gaze_points[j].split() #extracting gaze coordinates for current shot
+        gaze_pts = gaze_points[j].split() #extracting gaze coordinates for current shot -- for SDK ', ' delimiter must be used
         gx = float(gaze_pts[0])/currentshot.camera.width #normalizing x
         gy = float(gaze_pts[1])/currentshot.camera.height #normalizing y
         xy = np.array([gx, gy]) #creating array of 2D gaze cursor coordinates
         nearpoints = []
         for pt in reconstruction.points.values(): #looping through every point in the reconstruction
             pt2d = currentshot.project(pt.coordinates) #extracting 2D coordinates in current shot for every point in reconstruction
-            if np.allclose(pt2d, xy, atol = 0.4) or np.allclose(xy, pt2d, atol = 0.4): #if the pixel is close enough
+            if np.allclose(pt2d, xy, atol = 0.2) or np.allclose(xy, pt2d, atol = 0.2): #if the pixel is close enough
                 nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
-        xsum = 0
-        ysum = 0
-        zsum = 0
+        xs = []
+        ys = []
+        zs = []
         for pt in nearpoints:
-            xsum += pt.coordinates[0]
-            ysum += pt.coordinates[1]
-            zsum += pt.coordinates[2]
+            xs.append(pt.coordinates[0])
+            ys.append(pt.coordinates[1])
+            zs.append(pt.coordinates[2])
             #distance = depth of each point as distance behind image
-        if len(nearpoints)>20:
-            x = xsum / len(nearpoints)
-            y = ysum / len(nearpoints)
-            z = zsum / len(nearpoints)
+        if nearpoints:
+            x = np.median(xs) #median more likely to prevent outliers from giving unrealistic coordinates
+            y = np.median(ys)
+            z = np.median(zs)
             xyz = [x, y, z]
             pt = types.Point()
             pt.coordinates = xyz
             pt.color = [255, 0, 255]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
-            if not np.array_equal(xy, np.zeros([1, 2])):  # make sure to check if gaze coordinates are not (0, 0)
+            if not np.array_equal(xy, np.zeros([1, 2])):  # make sure to check if gaze coordinates are (0, 0)
                 gaze_points_3d.append(pt)
             j += 1
         else:
-            print 'LOOKING TOO FAR AWAY'
+            print shotid, 'LOOKING TOO FAR AWAY'
+
     """
     #now this for loop checks for duplicates in gaze fixations, adds points to reconstruction
     for newpt in gaze_points_3d:
@@ -795,7 +796,8 @@ def plot_gaze(reconstruction, data):
                     dup = True
             if dup == False:
                 gaze_points_3d_filtered.append(newpt)
-                """
+    """
+
     for pt in gaze_points_3d:#_filtered:
         reconstruction.add_point(pt)
     return reconstruction
