@@ -758,7 +758,7 @@ def plot_gaze(reconstruction, data):
         nearpoints = []
         for pt in reconstruction.points.values(): #for every point in the reconstruction
             pt2d = currentshot.project(pt.coordinates) #extracting 2D coordinates in current shot for point
-            if np.allclose(pt2d, xy, atol = 0.2) or np.allclose(xy, pt2d, atol = 0.2): #if the pixel is close enough
+            if np.allclose(pt2d, xy, atol = .3) or np.allclose(xy, pt2d, atol = .3): #if the pixel is close enough
                 nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
         xs = []
         ys = []
@@ -769,13 +769,13 @@ def plot_gaze(reconstruction, data):
             zs.append(pt.coordinates[2])
             #distance = depth of each point as distance behind image
         if nearpoints:
-            x = np.median(xs) #median more likely to prevent outliers from giving unrealistic coordinates
-            y = np.median(ys)
-            z = np.median(zs)
+            x = np.mean(xs) #median more likely to prevent outliers from giving unrealistic coordinates
+            y = np.mean(ys)
+            z = np.mean(zs)
             xyz = [x, y, z]
             pt = types.Point()
             pt.coordinates = xyz
-            pt.color = [255, 0, 255]
+            pt.color = [150, 0, 150]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             if not np.array_equal(xy, np.zeros([1, 2])):  # make sure to check if gaze coordinates are (0, 0)
                 gaze_points_3d.append(pt)
@@ -783,7 +783,7 @@ def plot_gaze(reconstruction, data):
         else:
             print shotid, 'LOOKING TOO FAR AWAY'
 
-    """
+
     #now this for loop checks for duplicates in gaze fixations, adds points to reconstruction
     for newpt in gaze_points_3d:
         dup = False
@@ -791,13 +791,13 @@ def plot_gaze(reconstruction, data):
             gaze_points_3d_filtered.append(newpt)
         else:
             for oldpt in gaze_points_3d_filtered:
-                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = .1):
+                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = .3):
                     oldpt.color[0] += 15
                     oldpt.color[2] += 15
                     dup = True
             if dup == False:
                 gaze_points_3d_filtered.append(newpt)
-    """
+
 
     for pt in gaze_points_3d:#_filtered:
         reconstruction.add_point(pt)
