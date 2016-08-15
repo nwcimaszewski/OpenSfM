@@ -759,7 +759,7 @@ def plot_gaze(reconstruction, data):
         nearpoints = []
         for pt in reconstruction.points.values(): #for every point in the reconstruction
             pt2d = currentshot.project(pt.coordinates) #extracting 2D coordinates in current shot for point
-            if np.allclose(pt2d, xy, atol = .3) or np.allclose(xy, pt2d, atol = .3): #if the pixel is close enough
+            if np.allclose(pt2d, xy, atol = .4) or np.allclose(xy, pt2d, atol = .4): #if the pixel is close enough
                 nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
         xs = []
         ys = []
@@ -779,9 +779,9 @@ def plot_gaze(reconstruction, data):
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             if not np.array_equal(xy, np.array([-1,-1])):  # make sure to check if gaze coordinates are (0, 0)
                 gaze_points_3d.append(pt)
-            j += 1
         else:
             print shotid, 'LOOKING TOO FAR AWAY'
+        j += 1
 
 
     #now this for loop checks for duplicates in gaze fixations, adds points to reconstruction
@@ -791,7 +791,7 @@ def plot_gaze(reconstruction, data):
             gaze_points_3d_filtered.append(newpt)
         else:
             for oldpt in gaze_points_3d_filtered:
-                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = .3):
+                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = .4):
                     oldpt.color[0] += 15
                     oldpt.color[2] += 15
                     dup = True
