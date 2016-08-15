@@ -751,13 +751,13 @@ def plot_gaze(reconstruction, data):
     for shotid in sorted(reconstruction.shots): #loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
         currentshot = reconstruction.shots[shotid]
         gaze_pts = gaze_points[j].split() #extracting gaze coordinates for current shot -- for SDK ', ' delimiter must be used
-        gx = (float(gaze_pts[0])/currentshot.camera.width)-1 #normalizing x
-        gy = (float(gaze_pts[1])/currentshot.camera.height)-1 #normalizing y
+        gx = (float(gaze_pts[0])/currentshot.camera.width)-.5 #normalizing x
+        gy = (float(gaze_pts[1])/currentshot.camera.height)-.5 #normalizing y
         xy = np.array([gx, gy]) #creating array of 2D gaze cursor coordinates
+        print 'XY',  xy
         nearpoints = []
         for pt in reconstruction.points.values(): #for every point in the reconstruction
             pt2d = currentshot.project(pt.coordinates) #extracting 2D coordinates in current shot for point
-            print pt2d
             if np.allclose(pt2d, xy, atol = 0.2) or np.allclose(xy, pt2d, atol = 0.2): #if the pixel is close enough
                 nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
         xs = []
