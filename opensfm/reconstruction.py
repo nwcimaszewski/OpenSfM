@@ -768,7 +768,6 @@ def plot_gaze(reconstruction, data):
             xs.append(pt.coordinates[0])
             ys.append(pt.coordinates[1])
             zs.append(pt.coordinates[2])
-            #distance = depth of each point as distance behind image
         if nearpoints:
             x = np.mean(xs) #median more likely to prevent outliers from giving unrealistic coordinates
             y = np.mean(ys)
@@ -800,7 +799,7 @@ def plot_gaze(reconstruction, data):
                 gaze_points_3d_filtered.append(newpt)
 
 
-    for pt in gaze_points_3d:#_filtered:
+    for pt in gaze_points_3d_filtered:
         reconstruction.add_point(pt)
     return reconstruction
 
