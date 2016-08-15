@@ -751,8 +751,9 @@ def plot_gaze(reconstruction, data):
     for shotid in sorted(reconstruction.shots): #loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
         currentshot = reconstruction.shots[shotid]
         gaze_pts = gaze_points[j].split() #extracting gaze coordinates for current shot -- for SDK ', ' delimiter must be used
-        gx = (float(gaze_pts[0])/currentshot.camera.width)-.5 #normalizing x
-        gy = (float(gaze_pts[1])/currentshot.camera.height)-.5 #normalizing y
+        gx = 2*(float(gaze_pts[0])/currentshot.camera.width)-1 #normalizing x
+        gy = 2*(float(gaze_pts[1])/currentshot.camera.height)-1 #normalizing y
+        """I think this is right.  This way, if in center of shot, gives 0, 0, and range on either side is -1, 1."""
         xy = np.array([gx, gy]) #creating array of 2D gaze cursor coordinates
         print 'XY',  xy
         nearpoints = []
@@ -777,7 +778,7 @@ def plot_gaze(reconstruction, data):
             pt.coordinates = xyz
             pt.color = [180, 0, 180]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
-            if not np.array_equal(xy, np.zeros([1, 2])):  # make sure to check if gaze coordinates are (0, 0)
+            if not np.array_equal(xy, np.array([-1,-1])):  # make sure to check if gaze coordinates are (0, 0)
                 gaze_points_3d.append(pt)
             j += 1
         else:
