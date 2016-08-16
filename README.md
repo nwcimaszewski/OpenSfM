@@ -92,3 +92,6 @@ Things you can do from there:
 [Ceres solver]: http://ceres-solver.org/ (Library for solving complicated nonlinear least squares problems)
 [Boost Python]: http://www.boost.org/
 [Networkx]: https://github.com/networkx/networkx
+
+# Edits made by nwcimaszewski
+I have edited the file OpenSfM/opensfm/reconstruction.py so as to show in the reconstruction the location of the gaze cursor overtime (this project is meant to be used in the context of eye tracking).  I have also added the file OpenSfM/bin/just_reconstruction which only calls OpenSfM/opensfm/commands/reconstruct.py and OpenSfM/opensfm/commands/mesh.py as a way to test the edits made faster than running the entire pipeline.  In order for this to work as desired, it requires a text file in each dataset (gaze_coordinates.txt) that has the coordinates of the gaze cursor in corresponding order to the video frames in the images folder.  The coordinates should be in the format x y every line, where x is the number of pixels from the left edge of the frame and y is the number of pixels from the bottom edge of the frame.
