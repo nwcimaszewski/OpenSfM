@@ -807,13 +807,12 @@ def plot_gaze(reconstruction, data):
 # Added by nick 2016/07/28-08/05
 def plot_gaze(reconstruction, data):
     # gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
-    fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
+    fin = open(data.data_path + '/gaze_coordinates_targeted.txt', 'r')
     gaze_points = fin.readlines()
-    gaze_points_3d = []
-    gaze_points_3d_filtered = []
     marked = [11, 13, 15]
     j = 0
-    for shotid in sorted(reconstruction.shots):  # loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
+    targeted_shots = ['Image85.jpg', 'Image90.jpg', 'Image95.jpg', 'Image100.jpg','Image105.jpg','Image110.jpg','Image115.jpg','Image120.jpg','Image125.jpg','Image130.jpg','Image135.jpg','Image140.jpg']
+    for shotid in targeted_shots: #sorted(reconstruction.shots):  # loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
         currentshot = reconstruction.shots[shotid]
         gaze_pts = gaze_points[j].split()  # extracting gaze coordinates for current shot -- for SDK ', ' delimiter must be used
         gx = 2 * (float(gaze_pts[0]) / currentshot.camera.width) - 1  # normalizing x
