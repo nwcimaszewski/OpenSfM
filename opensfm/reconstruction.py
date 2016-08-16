@@ -826,12 +826,29 @@ def plot_gaze(reconstruction, data):
                 if np.allclose(pt2d, xy, atol=.04) or np.allclose(xy, pt2d, atol=.04):  # if the pixel is close enough
                     nearpoints.append(pt)  # add 3D point to list of points close to gaze fixation
         if nearpoints:
+            xs = []
+            ys = []
+            zs = []
             for pt in nearpoints:
-                if (pt.color[0]/15 in marked) and (pt.color[0]/15 in marked) and (pt.color[1] == 0):
-                    pt.color[0] += 30
-                    pt.color[2] += 30
-                else:
-                    pt.color = [165, 0, 165]
+                xs.append(pt.coordinates[0])
+                ys.append(pt.coordinates[1])
+                zs.append(pt.coordinates[2])
+            x = np.median(xs)  # median more likely than mean to prevent outliers from giving unrealistic coordinates
+            y = np.median(ys)
+            z = np.median(zs)
+            xyz = [x, y, z]
+            refpoint = types.Point()
+            refpoint.coordinates = xyz
+            refpoint.color = [255, 0, 255]
+            refpoint.id = 10000000000 + j
+            #The point (no pun intended) of refpoint is so that only points close to (the median of what is in the  vicinity of) the gaze cursor will be painted, not just everything that is 2D close in from the perspective of the camera
+            for pt in nearpoints:
+                if np.allclose(pt.coordinates, refpoint.coordinates, atol=.04) or np.allclose(refpoint.coordinates, pt.coordinates, atol=.04):
+                    if (pt.color[0]/15 in marked) and (pt.color[0]/15 in marked) and (pt.color[1] == 0):
+                        pt.color[0] += 30
+                        pt.color[2] += 30
+                    else:
+                        pt.color = [165, 0, 165]
         else:
             print shotid, 'LOOKING TOO FAR AWAY'
         j += 1
