@@ -833,7 +833,6 @@ def plot_gaze(reconstruction, data):
                     pt.color[2] += 30
                 else:
                     pt.color = [165, 0, 165]
-                print shotid, pt.color
         else:
             print shotid, 'LOOKING TOO FAR AWAY'
         j += 1
@@ -842,6 +841,7 @@ def plot_gaze(reconstruction, data):
 
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
+    print 'INCREMENTAL_RECONSTRUCTION CALLED'
     data.invent_reference_lla()
     graph = data.load_tracks_graph()
     tracks, images = tracks_and_images(graph)
