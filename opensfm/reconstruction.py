@@ -824,7 +824,7 @@ def plot_gaze(reconstruction, data):
         if not np.array_equal(xy, np.array([-1, -1])):  # make sure to check if gaze coordinates are (0, 0)
             for pt in reconstruction.points.values():  # for every point in the reconstruction
                 pt2d = currentshot.project(pt.coordinates)  # extracting 2D coordinates in current shot for point
-                if np.allclose(pt2d, xy, atol=.05) or np.allclose(xy, pt2d, atol=.05):  # if the pixel is close enough
+                if np.allclose(pt2d, xy, atol=.02) or np.allclose(xy, pt2d, atol=.02):  # if the pixel is close enough
                     nearpoints.append(pt)  # add 3D point to list of points close to gaze fixation
         if nearpoints:
             for pt in nearpoints:
