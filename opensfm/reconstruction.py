@@ -811,7 +811,7 @@ def plot_gaze(reconstruction, data):
     gaze_points = fin.readlines()
     marked = [11, 13, 15]
     j = 0
-    targeted_shots = ['Image85.jpg', 'Image90.jpg', 'Image95.jpg', 'Image100.jpg','Image105.jpg','Image110.jpg','Image115.jpg','Image120.jpg','Image125.jpg','Image130.jpg','Image135.jpg','Image140.jpg']
+    targeted_shots = ['Image085.jpg', 'Image090.jpg', 'Image095.jpg', 'Image100.jpg','Image105.jpg','Image110.jpg','Image115.jpg','Image120.jpg','Image125.jpg','Image130.jpg','Image135.jpg','Image140.jpg']
     for shotid in targeted_shots: #sorted(reconstruction.shots):  # loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
         currentshot = reconstruction.shots[shotid]
         gaze_pts = gaze_points[j].split()  # extracting gaze coordinates for current shot -- for SDK ', ' delimiter must be used
