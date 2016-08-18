@@ -833,9 +833,9 @@ def plot_gaze(reconstruction, data):
                 xs.append(pt.coordinates[0])
                 ys.append(pt.coordinates[1])
                 zs.append(pt.coordinates[2])
-            x = np.median(xs)  # median more likely than mean to prevent outliers from giving unrealistic coordinates
-            y = np.median(ys)
-            z = np.median(zs)
+            x = np.mean(xs)  # median more likely than mean to prevent outliers from giving unrealistic coordinates
+            y = np.mean(ys)
+            z = np.mean(zs)
             xyz = [x, y, z]
             refpoint = types.Point()
             refpoint.coordinates = xyz
