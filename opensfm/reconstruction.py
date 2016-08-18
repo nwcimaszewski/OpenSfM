@@ -739,7 +739,7 @@ def tracks_and_images(graph):
             tracks.append(n[0])
     return tracks, images
 
-"""
+
 #Added by nick 2016/07/28-08/05
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
@@ -747,6 +747,8 @@ def plot_gaze(reconstruction, data):
     gaze_points = fin.readlines()
     gaze_points_3d = []
     gaze_points_3d_filtered = []
+    rs = [11, 13, 15]
+    bs = [13, 15, 17]
     j = 0
     for shotid in sorted(reconstruction.shots): #loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
         currentshot = reconstruction.shots[shotid]
@@ -755,12 +757,11 @@ def plot_gaze(reconstruction, data):
         gy = 2*(float(gaze_pts[1])/currentshot.camera.height)-1 #normalizing y
         #I think this is right.  This way, if in center of shot, gives 0, 0, and range on either side is -1, 1
         xy = np.array([gx, gy]) #creating array of 2D gaze cursor coordinates
-        print 'XY',  xy
         nearpoints = []
         if not np.array_equal(xy, np.array([-1,-1])):  # make sure to check if gaze coordinates are (0, 0)
             for pt in reconstruction.points.values(): #for every point in the reconstruction
                 pt2d = currentshot.project(pt.coordinates) #extracting 2D coordinates in current shot for point
-                if np.allclose(pt2d, xy, atol = .4) or np.allclose(xy, pt2d, atol = .4): #if the pixel is close enough
+                if np.allclose(pt2d, xy, atol = .2) or np.allclose(xy, pt2d, atol = .2): #if the pixel is close enough
                     nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
         xs = []
         ys = []
@@ -770,13 +771,13 @@ def plot_gaze(reconstruction, data):
             ys.append(pt.coordinates[1])
             zs.append(pt.coordinates[2])
         if nearpoints:
-            x = np.mean(xs) #median more likely to prevent outliers from giving unrealistic coordinates
-            y = np.mean(ys)
-            z = np.mean(zs)
+            x = np.median(xs) #median more likely to prevent outliers from giving unrealistic coordinates
+            y = np.median(ys)
+            z = np.median(zs)
             xyz = [x, y, z]
             pt = types.Point()
             pt.coordinates = xyz
-            pt.color = [195, 0, 195]
+            pt.color = [165, 0, 255]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
         else:
@@ -791,16 +792,23 @@ def plot_gaze(reconstruction, data):
             gaze_points_3d_filtered.append(newpt)
         else:
             for oldpt in gaze_points_3d_filtered:
-                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = .4):
-                    oldpt.color[0] += 15
-                    oldpt.color[2] += 15
+                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = .5):
+                    oldpt.color[0] += 30
+                    oldpt.color[2] -= 30
                     dup = True
             if dup == False:
                 gaze_points_3d_filtered.append(newpt)
 
 
-    for pt in gaze_points_3d_filtered:
-        reconstruction.add_point(pt)
+    for gazept in gaze_points_3d_filtered:
+        reconstruction.add_point(gazept)
+        for nearpt in reconstruction.points.values():
+                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=5):
+                    if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
+                        nearpt.color[0] += 30
+                        nearpt.color[2] -= 30
+                    else:
+                        nearpt.color = [165, 0, 255]
     return reconstruction
 """
 
@@ -823,7 +831,7 @@ def plot_gaze(reconstruction, data):
         if not np.array_equal(xy, np.array([-1, -1])):  # make sure to check if gaze coordinates are (0, 0)
             for pt in reconstruction.points.values():  # for every point in the reconstruction
                 pt2d = currentshot.project(pt.coordinates)  # extracting 2D coordinates in current shot for point
-                if np.allclose(pt2d, xy, atol=.04) or np.allclose(xy, pt2d, atol=.04):  # if the pixel is close enough
+                if np.allclose(pt2d, xy, atol=.1) or np.allclose(xy, pt2d, atol=.1):  # if the pixel is close enough
                     nearpoints.append(pt)  # add 3D point to list of points close to gaze fixation
         if nearpoints:
             xs = []
@@ -843,8 +851,8 @@ def plot_gaze(reconstruction, data):
             refpoint.id = 10000000000 + j
             #The point (no pun intended) of refpoint is so that only points close to (the median of what is in the  vicinity of) the gaze cursor will be painted, not just everything that is 2D close in from the perspective of the camera
             for pt in nearpoints:
-                if np.allclose(pt.coordinates, refpoint.coordinates, atol=.04) or np.allclose(refpoint.coordinates, pt.coordinates, atol=.04):
-                    if (pt.color[0]/15 in marked) and (pt.color[0]/15 in marked) and (pt.color[1] == 0):
+                if np.allclose(pt.coordinates, refpoint.coordinates, atol=.05) or np.allclose(refpoint.coordinates, pt.coordinates, atol=.05):
+                    if (pt.color[0]/15 in marked) and (pt.color[2]/15 in marked) and (pt.color[1] == 0):
                         pt.color[0] += 30
                         pt.color[2] += 30
                     else:
@@ -853,7 +861,7 @@ def plot_gaze(reconstruction, data):
             print shotid, 'LOOKING TOO FAR AWAY'
         j += 1
     return reconstruction
-
+"""
 
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
