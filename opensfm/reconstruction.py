@@ -781,7 +781,7 @@ def plot_gaze(reconstruction, data):
             xyz = [x, y, z]
             pt = types.Point()
             pt.coordinates = xyz
-            pt.color = [135, 0, 255]
+            pt.color = [255, 255, 0]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
         else:
