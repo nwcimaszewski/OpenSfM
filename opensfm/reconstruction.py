@@ -19,6 +19,10 @@ from opensfm import matching
 from opensfm import multiview
 from opensfm import transformations as tf
 from opensfm import types
+#Added by nick 2016/08/23
+from sklearn.cluster import MeanShift, estimate_bandwidth
+
+
 
 
 logger = logging.getLogger(__name__)
@@ -747,8 +751,8 @@ def plot_gaze(reconstruction, data):
     gaze_points = fin.readlines()
     gaze_points_3d = []
     gaze_points_3d_filtered = []
-    rs = [11, 13, 15]
-    bs = [13, 15, 17]
+    rs = [9, 11, 13, 15]
+    bs = [11, 13, 15, 17]
     j = 0
     for shotid in sorted(reconstruction.shots): #loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
         currentshot = reconstruction.shots[shotid]
@@ -761,7 +765,7 @@ def plot_gaze(reconstruction, data):
         if not np.array_equal(xy, np.array([-1,-1])):  # make sure to check if gaze coordinates are (0, 0)
             for pt in reconstruction.points.values(): #for every point in the reconstruction
                 pt2d = currentshot.project(pt.coordinates) #extracting 2D coordinates in current shot for point
-                if np.allclose(pt2d, xy, atol = .2) or np.allclose(xy, pt2d, atol = .2): #if the pixel is close enough
+                if np.allclose(pt2d, xy, atol = .3) or np.allclose(xy, pt2d, atol = .3): #if the pixel is close enough
                     nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
         xs = []
         ys = []
@@ -777,7 +781,7 @@ def plot_gaze(reconstruction, data):
             xyz = [x, y, z]
             pt = types.Point()
             pt.coordinates = xyz
-            pt.color = [165, 0, 255]
+            pt.color = [135, 0, 255]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
         else:
@@ -792,7 +796,7 @@ def plot_gaze(reconstruction, data):
             gaze_points_3d_filtered.append(newpt)
         else:
             for oldpt in gaze_points_3d_filtered:
-                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = .5):
+                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = .3) or np.allclose(oldpt.coordinates, newpt.coordinates, atol = .3):
                     oldpt.color[0] += 30
                     oldpt.color[2] -= 30
                     dup = True
@@ -803,13 +807,35 @@ def plot_gaze(reconstruction, data):
     for gazept in gaze_points_3d_filtered:
         reconstruction.add_point(gazept)
         for nearpt in reconstruction.points.values():
-                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=5):
+                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=1) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=1):
                     if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
                         nearpt.color[0] += 30
                         nearpt.color[2] -= 30
                     else:
-                        nearpt.color = [165, 0, 255]
+                        nearpt.color = [135, 0, 255]
     return reconstruction
+
+"""
+def meanshift(reconstruction):
+    # Compute clustering with MeanShift
+
+    X = np.array(reconstruction.points.values)
+
+    # The following bandwidth can be automatically detected using
+    bandwidth = estimate_bandwidth(X, quantile=.01)
+
+    ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+    ms.fit(X)
+    labels = ms.labels_
+    cluster_centers = ms.cluster_centers_
+
+    labels_unique = np.unique(labels)
+    n_clusters_ = len(labels_unique)
+
+    print("number of estimated clusters : %d" % n_clusters_)
+
+    return reconstruction
+"""
 
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
