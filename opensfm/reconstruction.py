@@ -744,7 +744,7 @@ def tracks_and_images(graph):
     return tracks, images
 
 
-#Added by nick 2016/07/28-08/05
+#Added by nick
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
     fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
@@ -811,7 +811,7 @@ def plot_gaze(reconstruction, data):
                     if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
                         nearpt.color[0] += 30
                         nearpt.color[2] -= 30
-                    else:
+                    elif nearpt.color != [255, 255, 0]:
                         nearpt.color = [135, 0, 255]
     return reconstruction
 
@@ -857,7 +857,7 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
-                reconstruction = plot_gaze(reconstruction, data)#Added by nick 2016/07/29
+                reconstruction = plot_gaze(reconstruction, data)#Added by nick
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
