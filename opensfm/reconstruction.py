@@ -807,7 +807,7 @@ def plot_gaze(reconstruction, data):
     for gazept in gaze_points_3d_filtered:
         reconstruction.add_point(gazept)
         for nearpt in reconstruction.points.values():
-                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=3) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=3):
+                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=5):
                     if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
                         nearpt.color[0] += 30
                         nearpt.color[2] -= 30
