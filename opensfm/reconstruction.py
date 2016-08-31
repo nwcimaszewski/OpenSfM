@@ -19,9 +19,10 @@ from opensfm import matching
 from opensfm import multiview
 from opensfm import transformations as tf
 from opensfm import types
-#Added by nick 2016/08/23
+#Added by nick
 from sklearn.cluster import MeanShift, estimate_bandwidth
-
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 
@@ -743,7 +744,7 @@ def tracks_and_images(graph):
             tracks.append(n[0])
     return tracks, images
 
-
+"""
 #Added by nick
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
@@ -781,7 +782,7 @@ def plot_gaze(reconstruction, data):
             xyz = [x, y, z]
             pt = types.Point()
             pt.coordinates = xyz
-            pt.color = [255, 255, 0]
+            pt.color = [135, 0, 255]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
         else:
@@ -811,31 +812,121 @@ def plot_gaze(reconstruction, data):
                     if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
                         nearpt.color[0] += 30
                         nearpt.color[2] -= 30
+    return reconstruction
+
+
+"""
+def plot_gaze(reconstruction, data):
+    #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
+    fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
+    gaze_points = fin.readlines()
+    gaze_points_3d = []
+    gaze_points_3d_filtered = []
+    rs = [9, 11, 13, 15]
+    bs = [11, 13, 15, 17]
+    j = 0
+    #loop through each photo for every pair of cursor coordinates
+    for shotid in sorted(reconstruction.shots):
+        currentshot = reconstruction.shots[shotid]
+        origin = currentshot.pose.get_origin()
+        #extract and normalize gaze cursor coordinates
+        gaze_pts = gaze_points[j].split() #extracting gaze coordinates for current shot -- for SDK ', ' delimiter must be used
+        gx = 2*(float(gaze_pts[0])/currentshot.camera.width)-1 #normalizing x
+        gy = 2*(float(gaze_pts[1])/currentshot.camera.height)-1 #normalizing y
+        xy = np.array([gx, gy]) #creating array of 2D gaze cursor coordinates
+        #loop through points and store those whose corresponding pixels are close to gaze cursor
+        nearpoints = []
+        if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
+            for pt in reconstruction.points.values():
+                pt2d = currentshot.project(pt.coordinates)
+                if np.allclose(pt2d, xy, atol = .1) or np.allclose(xy, pt2d, atol = .1):
+                    nearpoints.append(pt)
+
+        #Take average depth of 5 points with least depth (prevents influence from objects behind one being looked at)
+        depths = np.array([])
+        if nearpoints:
+            for pt in nearpoints:
+                coord = currentshot.pose.transform(pt.coordinates)
+                np.append(depths, coord[2])
+            depth = depths[np.argsort(depths)[:5]].mean()
+            #spawn reference point
+            pt = types.Point()
+            pt.coordinates = currentshot.back_project(xy, depth)
+            pt.color = [255, 255, 0]
+            pt.id = 1000000000 + j  # This is needed for more than one dot to show up
+            gaze_points_3d.append(pt)
+        else:
+            print shotid, 'NO NEAR POINTS'
+        j += 1
+
+    #Checks for duplicates in gaze fixations and increases brightness if so
+    for newpt in gaze_points_3d:
+        dup = False
+        if not gaze_points_3d_filtered: #If filtered is empty -- if this is the first point being checked
+            gaze_points_3d_filtered.append(newpt)
+        else:
+            for oldpt in gaze_points_3d_filtered:
+                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = .5) or np.allclose(oldpt.coordinates, newpt.coordinates, atol = .5):
+                    oldpt.color[0] += 30
+                    oldpt.color[2] -= 30
+                    dup = True
+            if dup == False:
+                gaze_points_3d_filtered.append(newpt)
+    #Adds points to reconstruction
+    for gazept in gaze_points_3d_filtered:
+        reconstruction.add_point(gazept)
+        for nearpt in reconstruction.points.values():
+                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=5):
+                    if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
+                        nearpt.color[0] += 30
+                        nearpt.color[2] -= 30
                     elif nearpt.color != [255, 255, 0]:
                         nearpt.color = [135, 0, 255]
     return reconstruction
 
-"""
 def meanshift(reconstruction):
-    # Compute clustering with MeanShift
 
-    X = np.array(reconstruction.points.values)
+    coord = {}
+    for pt in sorted(reconstruction.points):
+        coord[pt] = reconstruction.points[pt].coordinates
+    points = np.array(coord.values())
 
-    # The following bandwidth can be automatically detected using
-    bandwidth = estimate_bandwidth(X, quantile=.01)
+    ms = MeanShift(bandwidth = 0.00001, bin_seeding=True)
+    ms.fit(points)
 
-    ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
-    ms.fit(X)
-    labels = ms.labels_
-    cluster_centers = ms.cluster_centers_
+    i = 0
+    for x in coord:
+        coord[x] = points[i,:].tolist()
+        i += 1
 
-    labels_unique = np.unique(labels)
-    n_clusters_ = len(labels_unique)
-
-    print("number of estimated clusters : %d" % n_clusters_)
+    for pt in coord:
+        reconstruction.points[pt].coordinates = coord[pt]
 
     return reconstruction
-"""
+
+
+def draw_dist(reconstruction):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    flat_map = np.zeros([10000,10000])
+    flat_map -= 1
+    for pt in reconstruction.points.values():
+        x = int(100*pt.coordinates[0])
+        y = int(100*pt.coordinates[1])
+        if flat_map[x,y] == -1:
+            if (pt.color[0] / 15==9) and (pt.color[2] / 15==17) and (pt.color[1] == 0):
+                flat_map[x,y] = 1
+            elif (pt.color[0] / 15==11) and (pt.color[2] / 15==15) and (pt.color[1] == 0):
+                flat_map[x, y] = 2
+            elif (pt.color[0] / 15 == 13) and (pt.color[2] / 15 == 13) and (pt.color[1] == 0):
+                flat_map[x, y] = 3
+            elif (pt.color[0] / 15 == 15) and (pt.color[2] / 15 == 11) and (pt.color[1] == 0):
+                flat_map[x, y] = 4
+            elif (pt.color[0] / 15 == 17) and (pt.color[2] / 15 == 9) and (pt.color[1] == 0):
+                flat_map[x, y] = 5
+            else:
+                flat_map[x, y] = 0
+    ax.plot_surface(flat_map)
 
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
@@ -858,6 +949,8 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
                 reconstruction = plot_gaze(reconstruction, data)#Added by nick
+                #reconstruction = meanshift(reconstruction)
+                #draw_dist(reconstruction)
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))

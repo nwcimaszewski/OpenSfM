@@ -178,7 +178,7 @@ class PerspectiveCamera(Camera):
         self.k2_prior = None
 
     def project(self, point):
-        """Project a 3D point in camera coordinates to the image plane."""
+        """Project a 3D point in F coordinates to the image plane."""
         # Normalized image coordinates
         xn = point[0] / point[2]
         yn = point[1] / point[2]
