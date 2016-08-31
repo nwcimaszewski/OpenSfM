@@ -744,7 +744,7 @@ def tracks_and_images(graph):
             tracks.append(n[0])
     return tracks, images
 
-"""
+
 #Added by nick
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
@@ -813,9 +813,9 @@ def plot_gaze(reconstruction, data):
                         nearpt.color[0] += 30
                         nearpt.color[2] -= 30
     return reconstruction
-
-
 """
+
+
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
     fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
@@ -844,7 +844,9 @@ def plot_gaze(reconstruction, data):
 
         #Take average depth of 5 points with least depth (prevents influence from objects behind one being looked at)
         depths = np.array([])
-        if nearpoints:
+        if not nearpoints:
+            print shotid, 'NO NEAR POINTS'
+        else:
             for pt in nearpoints:
                 coord = currentshot.pose.transform(pt.coordinates)
                 np.append(depths, coord[2])
@@ -855,8 +857,6 @@ def plot_gaze(reconstruction, data):
             pt.color = [255, 255, 0]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
-        else:
-            print shotid, 'NO NEAR POINTS'
         j += 1
 
     #Checks for duplicates in gaze fixations and increases brightness if so
@@ -883,6 +883,7 @@ def plot_gaze(reconstruction, data):
                     elif nearpt.color != [255, 255, 0]:
                         nearpt.color = [135, 0, 255]
     return reconstruction
+"""
 
 def meanshift(reconstruction):
 
@@ -901,7 +902,6 @@ def meanshift(reconstruction):
 
     for pt in coord:
         reconstruction.points[pt].coordinates = coord[pt]
-
     return reconstruction
 
 
@@ -928,6 +928,7 @@ def draw_dist(reconstruction):
                 flat_map[x, y] = 0
     ax.plot_surface(flat_map)
 
+
 def incremental_reconstruction(data):
     """Run the entire incremental reconstruction pipeline."""
     print 'INCREMENTAL_RECONSTRUCTION CALLED'
@@ -948,7 +949,7 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im1)
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
-                reconstruction = plot_gaze(reconstruction, data)#Added by nick
+                reconstruction = plot_gaze(reconstruction, data)
                 #reconstruction = meanshift(reconstruction)
                 #draw_dist(reconstruction)
                 reconstructions.append(reconstruction)
