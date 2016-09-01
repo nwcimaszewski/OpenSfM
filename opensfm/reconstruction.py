@@ -850,7 +850,7 @@ def plot_gaze(reconstruction, data):
             for pt in nearpoints:
                 coord = currentshot.pose.transform(pt.coordinates)
                 depths = np.append(depths, coord[2])
-            depth = depths[np.argsort(depths)[:10]].median()
+            depth = np.median(depths[np.argsort(depths)[:10]])
             #spawn reference point
             pt = types.Point()
             pt.coordinates = currentshot.back_project(xy, depth)
