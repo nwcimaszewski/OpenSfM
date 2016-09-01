@@ -839,7 +839,7 @@ def plot_gaze(reconstruction, data):
         if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
-                if np.allclose(pt2d, xy, atol = .5) or np.allclose(xy, pt2d, atol = .5):
+                if np.allclose(pt2d, xy, atol = 0.3) or np.allclose(xy, pt2d, atol = 0.3):
                     nearpoints.append(pt)
 
         #Take average depth of 5 points with least depth (prevents influence from objects behind one being looked at)
@@ -854,7 +854,7 @@ def plot_gaze(reconstruction, data):
             #spawn reference point
             pt = types.Point()
             pt.coordinates = currentshot.back_project(xy, depth)
-            pt.color = [135, 0, 255]
+            pt.color = [255, 255, 0]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
         j += 1
