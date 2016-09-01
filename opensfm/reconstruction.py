@@ -828,7 +828,7 @@ def plot_gaze(reconstruction, data):
     #loop through each photo for every pair of cursor coordinates
     for shotid in sorted(reconstruction.shots):
         currentshot = reconstruction.shots[shotid]
-        origin = currentshot.pose.get_origin()
+        print shotid
         #extract and normalize gaze cursor coordinates
         gaze_pts = gaze_points[j].split() #extracting gaze coordinates for current shot -- for SDK ', ' delimiter must be used
         gx = 2*(float(gaze_pts[0])/currentshot.camera.width)-1 #normalizing x
@@ -839,18 +839,28 @@ def plot_gaze(reconstruction, data):
         if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
-                if np.allclose(pt2d, xy, atol = 0.3) or np.allclose(xy, pt2d, atol = 0.3):
+                if np.allclose(pt2d, xy, atol = 0.03) or np.allclose(xy, pt2d, atol = 0.03):
                     nearpoints.append(pt)
+        print len(nearpoints), 'NEAR POINTS'
 
-        #Take median depth of nearpoints
-        depths = np.array([])
+        cam_wise_cleaned = np.empty((0,3))
         if not nearpoints:
             print shotid, 'NO NEAR POINTS'
         else:
             for pt in nearpoints:
-                camcoord = currentshot.pose.transform(pt.coordinates)
-                depths = np.append(depths, camcoord[2])
-            depth = np.median(depths)
+                #print 'NEXT NEARPOINT'
+                cam_wise = currentshot.pose.transform(pt.coordinates)
+                if not cam_wise_cleaned.any():
+                    cam_wise_cleaned = np.append(cam_wise_cleaned, np.array([cam_wise]), axis=0)
+                else:
+                    for cleaned in cam_wise_cleaned:
+                        #print 'NEXT NEARPOINT -- NEXT BACKCHECK'
+                        if np.allclose(cleaned[:2], cam_wise[:2], atol = 0.05) or np.allclose(cam_wise[:2], cleaned[:2], atol = 0.05):
+                            if cam_wise[2] < cleaned[2]:
+                                cam_wise_cleaned = np.delete(cam_wise_cleaned, cam_wise_cleaned[np.where(cam_wise_cleaned==cleaned)])
+                        else:
+                            cam_wise_cleaned = np.append(cam_wise_cleaned, np.array([cam_wise]), axis=0)
+            depth = np.median(cam_wise_cleaned[:,2])
             #spawn reference point
             pt = types.Point()
             pt.coordinates = currentshot.back_project(xy, depth)
@@ -860,7 +870,7 @@ def plot_gaze(reconstruction, data):
         j += 1
 
     #Checks for duplicates in gaze fixations and increases brightness if so
-
+    """
     for newpt in gaze_points_3d:
         dup = False
         if not gaze_points_3d_filtered: #If filtered is empty -- if this is the first point being checked
@@ -873,9 +883,9 @@ def plot_gaze(reconstruction, data):
                     dup = True
             if dup == False:
                 gaze_points_3d_filtered.append(newpt)
-
+    """
     #Adds points to reconstruction
-    for gazept in gaze_points_3d_filtered:
+    for gazept in gaze_points_3d: #_filtered
         reconstruction.add_point(gazept)
         for nearpt in reconstruction.points.values():
                 if np.allclose(gazept.coordinates, nearpt.coordinates, atol=1.5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=1.5):
