@@ -842,15 +842,15 @@ def plot_gaze(reconstruction, data):
                 if np.allclose(pt2d, xy, atol = 0.3) or np.allclose(xy, pt2d, atol = 0.3):
                     nearpoints.append(pt)
 
-        #Take average depth of 5 points with least depth (prevents influence from objects behind one being looked at)
+        #Take median depth of nearpoints
         depths = np.array([])
         if not nearpoints:
             print shotid, 'NO NEAR POINTS'
         else:
             for pt in nearpoints:
-                coord = currentshot.pose.transform(pt.coordinates)
-                depths = np.append(depths, coord[2])
-            depth = np.median(depths[np.argsort(depths)[:10]])
+                camcoord = currentshot.pose.transform(pt.coordinates)
+                depths = np.append(depths, camcoord[2])
+            depth = np.median(depths)
             #spawn reference point
             pt = types.Point()
             pt.coordinates = currentshot.back_project(xy, depth)
