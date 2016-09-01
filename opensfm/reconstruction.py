@@ -836,31 +836,34 @@ def plot_gaze(reconstruction, data):
         xy = np.array([gx, gy]) #creating array of 2D gaze cursor coordinates
         #loop through points and store those whose corresponding pixels are close to gaze cursor
         nearpoints = []
+        unobstructed = []
         if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
-                if np.allclose(pt2d, xy, atol = 0.03) or np.allclose(xy, pt2d, atol = 0.03):
+                if np.allclose(pt2d, xy, atol = 0.1) or np.allclose(xy, pt2d, atol = 0.1):
                     nearpoints.append(pt)
-        print len(nearpoints), 'NEAR POINTS'
-
-        cam_wise_cleaned = np.empty((0,3))
         if not nearpoints:
             print shotid, 'NO NEAR POINTS'
         else:
             for pt in nearpoints:
-                print 'NEXT NEARPOINT'
-                cam_wise = currentshot.pose.transform(pt.coordinates)
-                if not cam_wise_cleaned.any():
-                    cam_wise_cleaned = np.append(cam_wise_cleaned, np.array([cam_wise]), axis=0)
+                blocking = False
+                cam_wise = currentshot.pose.transform(pt.coordinates).tolist()
+                if not unobstructed:
+                    unobstructed.append(cam_wise)
                 else:
-                    for cleaned in cam_wise_cleaned:
-                        #print 'NEXT NEARPOINT -- NEXT BACKCHECK'
-                        if np.allclose(cleaned[:2], cam_wise[:2], atol = 0.05) or np.allclose(cam_wise[:2], cleaned[:2], atol = 0.05):
-                            if cam_wise[2] < cleaned[2]:
-                                cam_wise_cleaned = np.delete(cam_wise_cleaned, cam_wise_cleaned[np.where(cam_wise_cleaned==cleaned)])
-                        else:
-                            cam_wise_cleaned = np.append(cam_wise_cleaned, np.array([cam_wise]), axis=0)
-            depth = np.median(cam_wise_cleaned[:,2])
+                    for cleared in unobstructed:
+                        if np.allclose(cleared[:2], cam_wise[:2], atol = 0.05) or np.allclose(cam_wise[:2], cleared[:2], atol = 0.05):
+                            if cam_wise[2] < cleared[2]:
+                                blocking = True
+                                print 'BLOCKING'
+                                x = unobstructed.index(cleared)
+                                del unobstructed[x]
+                                unobstructed.append(cam_wise)
+                    if not blocking:
+                        unobstructed.append(cam_wise)
+            unobstructed = np.array(unobstructed)
+            depth = np.median(unobstructed[:,2])
+            print 'DEPTH', depth
             #spawn reference point
             pt = types.Point()
             pt.coordinates = currentshot.back_project(xy, depth)
