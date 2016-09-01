@@ -744,7 +744,7 @@ def tracks_and_images(graph):
             tracks.append(n[0])
     return tracks, images
 
-
+"""
 #Added by nick
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
@@ -839,7 +839,7 @@ def plot_gaze(reconstruction, data):
         if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
-                if np.allclose(pt2d, xy, atol = .1) or np.allclose(xy, pt2d, atol = .1):
+                if np.allclose(pt2d, xy, atol = .04) or np.allclose(xy, pt2d, atol = .01):
                     nearpoints.append(pt)
 
         #Take average depth of 5 points with least depth (prevents influence from objects behind one being looked at)
@@ -849,41 +849,43 @@ def plot_gaze(reconstruction, data):
         else:
             for pt in nearpoints:
                 coord = currentshot.pose.transform(pt.coordinates)
-                np.append(depths, coord[2])
+                depths = np.append(depths, coord[2])
             depth = depths[np.argsort(depths)[:5]].mean()
             #spawn reference point
             pt = types.Point()
             pt.coordinates = currentshot.back_project(xy, depth)
-            pt.color = [255, 255, 0]
+            pt.color = [135, 0, 255]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
         j += 1
 
     #Checks for duplicates in gaze fixations and increases brightness if so
+
     for newpt in gaze_points_3d:
         dup = False
         if not gaze_points_3d_filtered: #If filtered is empty -- if this is the first point being checked
             gaze_points_3d_filtered.append(newpt)
         else:
             for oldpt in gaze_points_3d_filtered:
-                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = .5) or np.allclose(oldpt.coordinates, newpt.coordinates, atol = .5):
+                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = 1.5) or np.allclose(oldpt.coordinates, newpt.coordinates, atol = 1.5):
                     oldpt.color[0] += 30
                     oldpt.color[2] -= 30
                     dup = True
             if dup == False:
                 gaze_points_3d_filtered.append(newpt)
+
     #Adds points to reconstruction
     for gazept in gaze_points_3d_filtered:
         reconstruction.add_point(gazept)
         for nearpt in reconstruction.points.values():
-                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=5):
+                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=1.5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=1.5):
                     if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
                         nearpt.color[0] += 30
                         nearpt.color[2] -= 30
-                    elif nearpt.color != [255, 255, 0]:
+                    elif nearpt.color != [255, 255, 0]: #Make this the color of spawned points if you want to see them
                         nearpt.color = [135, 0, 255]
     return reconstruction
-"""
+
 
 def meanshift(reconstruction):
 
