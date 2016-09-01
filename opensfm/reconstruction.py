@@ -839,7 +839,7 @@ def plot_gaze(reconstruction, data):
         if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
-                if np.allclose(pt2d, xy, atol = .05) or np.allclose(xy, pt2d, atol = .05):
+                if np.allclose(pt2d, xy, atol = .5) or np.allclose(xy, pt2d, atol = .5):
                     nearpoints.append(pt)
 
         #Take average depth of 5 points with least depth (prevents influence from objects behind one being looked at)
