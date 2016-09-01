@@ -848,7 +848,7 @@ def plot_gaze(reconstruction, data):
             print shotid, 'NO NEAR POINTS'
         else:
             for pt in nearpoints:
-                #print 'NEXT NEARPOINT'
+                print 'NEXT NEARPOINT'
                 cam_wise = currentshot.pose.transform(pt.coordinates)
                 if not cam_wise_cleaned.any():
                     cam_wise_cleaned = np.append(cam_wise_cleaned, np.array([cam_wise]), axis=0)
