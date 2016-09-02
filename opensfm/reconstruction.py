@@ -836,14 +836,14 @@ def plot_gaze(reconstruction, data):
         xy = np.array([gx, gy]) #creating array of 2D gaze cursor coordinates
         #loop through points and store those whose corresponding pixels are close to gaze cursor
         nearpoints = []
-        unobstructed = []
-        #camera_wise = []
+        #unobstructed = []
+        camera_wise = []
         if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
                 if np.allclose(pt2d, xy, atol = 0.1) or np.allclose(xy, pt2d, atol = 0.1):
                     nearpoints.append(pt)
-        """
+        #"""
         if not nearpoints:
             print shotid, 'NO NEAR POINTS'
         else:
