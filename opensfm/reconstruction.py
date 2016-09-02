@@ -870,7 +870,7 @@ def plot_gaze(reconstruction, data):
                     unobstructed.append(cam_wise)
                 else:
                     for cleared in unobstructed[:]:
-                        if np.allclose(cleared[:2], cam_wise[:2], atol = 0.05) or np.allclose(cam_wise[:2], cleared[:2], atol = 0.05):
+                        if not behind and (np.allclose(cleared[:2], cam_wise[:2], atol = 0.05) or np.allclose(cam_wise[:2], cleared[:2], atol = 0.05)):
                             if cam_wise[2] < cleared[2]:
                                 print 'BLOCKING'
                                 unobstructed.remove(cleared)
@@ -984,6 +984,7 @@ def incremental_reconstruction(data):
                 remaining_images.remove(im2)
                 reconstruction = grow_reconstruction(data, graph, reconstruction, remaining_images, gcp)
                 reconstruction = plot_gaze(reconstruction, data)
+                print len(reconstruction.points), 'NUMBER OF POINTS'
                 #reconstruction = meanshift(reconstruction)
                 #draw_dist(reconstruction)
                 reconstructions.append(reconstruction)
