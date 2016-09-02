@@ -3,7 +3,3 @@
 # Set here any parameter that you want to override for this dataset
 # For example:
 processes: 8                  # Number of threads to use
-
-# Params for HAHOG
-hahog_peak_threshold: 0.0001
-hahog_edge_threshold: 10

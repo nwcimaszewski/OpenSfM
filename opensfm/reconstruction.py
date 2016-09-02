@@ -836,14 +836,14 @@ def plot_gaze(reconstruction, data):
         xy = np.array([gx, gy]) #creating array of 2D gaze cursor coordinates
         #loop through points and store those whose corresponding pixels are close to gaze cursor
         nearpoints = []
-        #unobstructed = []
-        camera_wise = []
+        unobstructed = []
+        #camera_wise = []
         if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
-                if np.allclose(pt2d, xy, atol = 0.1) or np.allclose(xy, pt2d, atol = 0.1):
+                if np.allclose(pt2d, xy, atol = 0.3) or np.allclose(xy, pt2d, atol = 0.3):
                     nearpoints.append(pt)
-        #"""
+        """
         if not nearpoints:
             print shotid, 'NO NEAR POINTS'
         else:
@@ -870,7 +870,7 @@ def plot_gaze(reconstruction, data):
                     unobstructed.append(cam_wise)
                 else:
                     for cleared in unobstructed[:]:
-                        if not behind and (np.allclose(cleared[:2], cam_wise[:2], atol = 0.05) or np.allclose(cam_wise[:2], cleared[:2], atol = 0.05)):
+                        if not behind and (np.allclose(cleared[:2], cam_wise[:2], atol = 0.15) or np.allclose(cam_wise[:2], cleared[:2], atol = 0.15)):
                             if cam_wise[2] < cleared[2]:
                                 print 'BLOCKING'
                                 unobstructed.remove(cleared)
@@ -899,7 +899,7 @@ def plot_gaze(reconstruction, data):
             gaze_points_3d_filtered.append(newpt)
         else:
             for oldpt in gaze_points_3d_filtered:
-                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = 3) or np.allclose(oldpt.coordinates, newpt.coordinates, atol = 3):
+                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = 5) or np.allclose(oldpt.coordinates, newpt.coordinates, atol = 5):
                     oldpt.color[0] += 30
                     oldpt.color[2] -= 30
                     dup = True
@@ -910,7 +910,7 @@ def plot_gaze(reconstruction, data):
     for gazept in gaze_points_3d: #_filtered
         reconstruction.add_point(gazept)
         for nearpt in reconstruction.points.values():
-                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=3) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=3):
+                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=5):
                     if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
                         nearpt.color[0] += 30
                         nearpt.color[2] -= 30
