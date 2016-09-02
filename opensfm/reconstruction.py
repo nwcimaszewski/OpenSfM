@@ -840,26 +840,25 @@ def plot_gaze(reconstruction, data):
         if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
-                if np.allclose(pt2d, xy, atol = 0.1) or np.allclose(xy, pt2d, atol = 0.1):
+                if np.allclose(pt2d, xy, atol = 0.2) or np.allclose(xy, pt2d, atol = 0.2):
                     nearpoints.append(pt)
         if not nearpoints:
             print shotid, 'NO NEAR POINTS'
         else:
             for pt in nearpoints:
-                blocking = False
+                behind = False
                 cam_wise = currentshot.pose.transform(pt.coordinates).tolist()
                 if not unobstructed:
                     unobstructed.append(cam_wise)
                 else:
                     for cleared in unobstructed:
-                        if np.allclose(cleared[:2], cam_wise[:2], atol = 0.05) or np.allclose(cam_wise[:2], cleared[:2], atol = 0.05):
+                        if np.allclose(cleared[:2], cam_wise[:2], atol = 0.1) or np.allclose(cam_wise[:2], cleared[:2], atol = 0.1):
                             if cam_wise[2] < cleared[2]:
-                                blocking = True
-                                print 'BLOCKING'
                                 x = unobstructed.index(cleared)
                                 del unobstructed[x]
-                                unobstructed.append(cam_wise)
-                    if not blocking:
+                            elif cam_wise[2] > cleared[2]:
+                                behind = True
+                    if not behind:
                         unobstructed.append(cam_wise)
             unobstructed = np.array(unobstructed)
             depth = np.median(unobstructed[:,2])
@@ -867,35 +866,35 @@ def plot_gaze(reconstruction, data):
             #spawn reference point
             pt = types.Point()
             pt.coordinates = currentshot.back_project(xy, depth)
-            pt.color = [255, 255, 0]
+            pt.color = [135, 0, 255]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
         j += 1
 
     #Checks for duplicates in gaze fixations and increases brightness if so
-    """
+
     for newpt in gaze_points_3d:
         dup = False
         if not gaze_points_3d_filtered: #If filtered is empty -- if this is the first point being checked
             gaze_points_3d_filtered.append(newpt)
         else:
             for oldpt in gaze_points_3d_filtered:
-                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = 1.5) or np.allclose(oldpt.coordinates, newpt.coordinates, atol = 1.5):
+                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = 3) or np.allclose(oldpt.coordinates, newpt.coordinates, atol = 3):
                     oldpt.color[0] += 30
                     oldpt.color[2] -= 30
                     dup = True
             if dup == False:
                 gaze_points_3d_filtered.append(newpt)
-    """
+
     #Adds points to reconstruction
     for gazept in gaze_points_3d: #_filtered
         reconstruction.add_point(gazept)
         for nearpt in reconstruction.points.values():
-                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=1.5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=1.5):
+                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=3) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=3):
                     if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
                         nearpt.color[0] += 30
                         nearpt.color[2] -= 30
-                    elif nearpt.color != [255, 255, 0]: #Make this the color of spawned points if you want to see them
+                    else: #if nearpt.color != [255, 255, 0]: #Make this the color of spawned points if you want to see them
                         nearpt.color = [135, 0, 255]
     return reconstruction
 
