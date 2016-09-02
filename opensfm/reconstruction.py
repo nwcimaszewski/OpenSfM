@@ -837,11 +837,29 @@ def plot_gaze(reconstruction, data):
         #loop through points and store those whose corresponding pixels are close to gaze cursor
         nearpoints = []
         unobstructed = []
+        #camera_wise = []
         if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
-                if np.allclose(pt2d, xy, atol = 0.2) or np.allclose(xy, pt2d, atol = 0.2):
+                if np.allclose(pt2d, xy, atol = 0.1) or np.allclose(xy, pt2d, atol = 0.1):
                     nearpoints.append(pt)
+        """
+        if not nearpoints:
+            print shotid, 'NO NEAR POINTS'
+        else:
+            for pt in nearpoints:
+                camera_wise.append(currentshot.pose.transform(pt.coordinates).tolist())
+            camera_wise = np.array(camera_wise)
+            depth = np.median(camera_wise[:, 2])
+            print 'DEPTH', depth
+            # spawn reference point
+            pt = types.Point()
+            pt.coordinates = currentshot.back_project(xy, depth)
+            pt.color = [135, 0, 255]
+            pt.id = 1000000000 + j  # This is needed for more than one dot to show up
+            gaze_points_3d.append(pt)
+        """
+        #loop through near points checking for shared camera wise coordinates, only taking front most
         if not nearpoints:
             print shotid, 'NO NEAR POINTS'
         else:
@@ -852,10 +870,12 @@ def plot_gaze(reconstruction, data):
                     unobstructed.append(cam_wise)
                 else:
                     for cleared in unobstructed[:]:
-                        if np.allclose(cleared[:2], cam_wise[:2], atol = 0.1) or np.allclose(cam_wise[:2], cleared[:2], atol = 0.1):
+                        if np.allclose(cleared[:2], cam_wise[:2], atol = 0.05) or np.allclose(cam_wise[:2], cleared[:2], atol = 0.05):
                             if cam_wise[2] < cleared[2]:
+                                print 'BLOCKING'
                                 unobstructed.remove(cleared)
                             elif cam_wise[2] > cleared[2]:
+                                print 'BEHIND'
                                 behind = True
                     if not behind:
                         unobstructed.append(cam_wise)
@@ -868,6 +888,7 @@ def plot_gaze(reconstruction, data):
             pt.color = [135, 0, 255]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
+        #"""
         j += 1
 
     #Checks for duplicates in gaze fixations and increases brightness if so
