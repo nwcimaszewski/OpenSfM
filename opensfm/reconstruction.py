@@ -851,11 +851,10 @@ def plot_gaze(reconstruction, data):
                 if not unobstructed:
                     unobstructed.append(cam_wise)
                 else:
-                    for cleared in unobstructed:
+                    for cleared in unobstructed[:]:
                         if np.allclose(cleared[:2], cam_wise[:2], atol = 0.1) or np.allclose(cam_wise[:2], cleared[:2], atol = 0.1):
                             if cam_wise[2] < cleared[2]:
-                                x = unobstructed.index(cleared)
-                                del unobstructed[x]
+                                unobstructed.remove(cleared)
                             elif cam_wise[2] > cleared[2]:
                                 behind = True
                     if not behind:
