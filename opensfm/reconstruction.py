@@ -744,7 +744,7 @@ def tracks_and_images(graph):
             tracks.append(n[0])
     return tracks, images
 
-"""
+
 #Added by nick
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
@@ -817,7 +817,7 @@ def plot_gaze(reconstruction, data):
 
 
 def plot_gaze(reconstruction, data):
-    #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
+    #gaze_coordinates.txt is file where gaze coordinates are stored from ETG
     fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
     gaze_points = fin.readlines()
     gaze_points_3d = []
@@ -843,7 +843,7 @@ def plot_gaze(reconstruction, data):
                 pt2d = currentshot.project(pt.coordinates)
                 if np.allclose(pt2d, xy, atol = 0.1) or np.allclose(xy, pt2d, atol = 0.1):
                     nearpoints.append(pt)
-        #"""
+
         if not nearpoints:
             print shotid, 'NO NEAR POINTS'
         else:
@@ -871,7 +871,7 @@ def plot_gaze(reconstruction, data):
                     else: #if nearpt.color != [255, 255, 0]: #Make this the color of spawned points if you want to see them
                         nearpt.color = [135, 0, 255]
     return reconstruction
-
+"""
 
 def meanshift(reconstruction):
 
@@ -940,7 +940,7 @@ def incremental_reconstruction(data):
                 reconstruction = plot_gaze(reconstruction, data)
                 print len(reconstruction.points), 'NUMBER OF POINTS'
                 #reconstruction = meanshift(reconstruction)
-                #draw_dist(reconstruction)
+                draw_dist(reconstruction)
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
