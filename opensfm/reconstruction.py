@@ -754,27 +754,27 @@ def plot_gaze(reconstruction, data):
     rs = [9, 11, 13, 15]
     bs = [11, 13, 15, 17]
     j = 0
-    for shotid in sorted(reconstruction.shots): #loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
-        currentshot = reconstruction.shots[shotid]
+    for shot_id in sorted(reconstruction.shots): #loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
+        current_shot = reconstruction.shots[shot_id]
         gaze_pts = gaze_points[j].split() #extracting gaze coordinates for current shot -- for SDK ', ' delimiter must be used
-        gx = 2*(float(gaze_pts[0])/currentshot.camera.width)-1 #normalizing x
-        gy = 2*(float(gaze_pts[1])/currentshot.camera.height)-1 #normalizing y
+        gx = 2*(float(gaze_pts[0])/current_shot.camera.width)-1 #normalizing x
+        gy = 2*(float(gaze_pts[1])/current_shot.camera.height)-1 #normalizing y
         #I think this is right.  This way, if in center of shot, gives 0, 0, and range on either side is -1, 1
         xy = np.array([gx, gy]) #creating array of 2D gaze cursor coordinates
-        nearpoints = []
+        near_points = []
         if not np.array_equal(xy, np.array([-1,-1])):  # make sure to check if gaze coordinates are (0, 0)
             for pt in reconstruction.points.values(): #for every point in the reconstruction
-                pt2d = currentshot.project(pt.coordinates) #extracting 2D coordinates in current shot for point
+                pt2d = current_shot.project(pt.coordinates) #extracting 2D coordinates in current shot for point
                 if np.allclose(pt2d, xy, atol = .3) or np.allclose(xy, pt2d, atol = .3): #if the pixel is close enough
-                    nearpoints.append(pt) #add 3D point to list of points close to gaze fixation
+                    near_points.append(pt) #add 3D point to list of points close to gaze fixation
         xs = []
         ys = []
         zs = []
-        for pt in nearpoints:
+        for pt in near_points:
             xs.append(pt.coordinates[0])
             ys.append(pt.coordinates[1])
             zs.append(pt.coordinates[2])
-        if nearpoints:
+        if near_points:
             x = np.median(xs) #median more likely to prevent outliers from giving unrealistic coordinates
             y = np.median(ys)
             z = np.median(zs)
@@ -785,16 +785,18 @@ def plot_gaze(reconstruction, data):
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
         else:
-            print shotid, 'LOOKING TOO FAR AWAY'
+            print shot_id, 'LOOKING TOO FAR AWAY'
         j += 1
 
-    for gazept in gaze_points_3d:
-        reconstruction.add_point(gazept)
-        for nearpt in reconstruction.points.values():
-                if np.allclose(gazept.coordinates, nearpt.coordinates, atol=5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=5):
-                    if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
-                        nearpt.color[0] += 30
-                        nearpt.color[2] -= 30
+    for gaze_pt in gaze_points_3d:
+        reconstruction.add_point(gaze_pt)
+        for near_pt in reconstruction.points.values():
+                if np.allclose(gaze_pt.coordinates, near_pt.coordinates, atol=5) or np.allclose(near_pt.coordinates, gaze_pt.coordinates, atol=5):
+                    if (near_pt.color[0]/15 in rs) and (near_pt.color[2]/15 in bs) and (near_pt.color[1] == 0):
+                        near_pt.color[0] += 30
+                        near_pt.color[2] -= 30
+                    else:
+                        near_pt.color = [135, 0, 255]
     return reconstruction
 """
 
