@@ -751,7 +751,6 @@ def plot_gaze(reconstruction, data):
     fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
     gaze_points = fin.readlines()
     gaze_points_3d = []
-    gaze_points_3d_filtered = []
     rs = [9, 11, 13, 15]
     bs = [11, 13, 15, 17]
     j = 0
@@ -789,23 +788,7 @@ def plot_gaze(reconstruction, data):
             print shotid, 'LOOKING TOO FAR AWAY'
         j += 1
 
-
-    #now this for loop checks for duplicates in gaze fixations, adds points to reconstruction
-    for newpt in gaze_points_3d:
-        dup = False
-        if not gaze_points_3d_filtered: #If filtered is empty -- if this is the first point being checked
-            gaze_points_3d_filtered.append(newpt)
-        else:
-            for oldpt in gaze_points_3d_filtered:
-                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = .5) or np.allclose(oldpt.coordinates, newpt.coordinates, atol = .5):
-                    oldpt.color[0] += 30
-                    oldpt.color[2] -= 30
-                    dup = True
-            if dup == False:
-                gaze_points_3d_filtered.append(newpt)
-
-
-    for gazept in gaze_points_3d_filtered:
+    for gazept in gaze_points_3d:
         reconstruction.add_point(gazept)
         for nearpt in reconstruction.points.values():
                 if np.allclose(gazept.coordinates, nearpt.coordinates, atol=5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=5):
