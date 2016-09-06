@@ -746,7 +746,7 @@ def tracks_and_images(graph):
 
 
 #Added by nick
-"""
+
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
     fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
@@ -801,45 +801,6 @@ def plot_gaze(reconstruction, data):
                         near_pt.color = [135, 0, 255]
     return reconstruction
 """
-
-
-def plot_gaze(reconstruction, data):
-    # gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
-    fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
-    gaze_points = fin.readlines()
-    gaze_points_3d = []
-    rs = [9, 11, 13, 15]
-    bs = [11, 13, 15, 17]
-    j = 0
-    for shot_id in sorted(reconstruction.shots):  # loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
-        current_shot = reconstruction.shots[shot_id]
-        gaze_pts = gaze_points[
-            j].split()  # extracting gaze coordinates for current shot -- for SDK ', ' delimiter must be used
-        gx = 2 * (float(gaze_pts[0]) / current_shot.camera.width) - 1  # normalizing x
-        gy = 2 * (float(gaze_pts[1]) / current_shot.camera.height) - 1  # normalizing y
-        # I think this is right.  This way, if in center of shot, gives 0, 0, and range on either side is -1, 1
-        xy = np.array([gx, gy])  # creating array of 2D gaze cursor coordinates
-        print 'GAZE CURSOR COORDINATES', xy
-        near_points = []
-        if not np.array_equal(xy, np.array([-1, -1])):  # make sure to check if gaze coordinates are (0, 0)
-            for pt in reconstruction.points.values():  # for every point in the reconstruction
-                pt2d = current_shot.project(pt.coordinates)  # extracting 2D coordinates in current shot for point
-                if np.allclose(pt2d, xy, atol=.3) or np.allclose(xy, pt2d, atol=.3):  # if the pixel is close enough
-                    print 'NEAR POINT', pt2d
-                    near_points.append(pt)  # add 3D point to list of points close to gaze fixation
-
-        if not near_points:
-            print shot_id, 'NO NEAR POINTS'
-        else:
-            for near_pt in near_points:
-                if (near_pt.color[0] / 15 in rs) and (near_pt.color[2] / 15 in bs) and (near_pt.color[1] == 0):
-                    near_pt.color[0] += 30
-                    near_pt.color[2] -= 30
-                else:
-                    near_pt.color = [135, 0, 255]
-        return reconstruction
-
-"""
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt is file where gaze coordinates are stored from ETG
     fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
@@ -873,7 +834,7 @@ def plot_gaze(reconstruction, data):
         else:
             for pt in nearpoints:
                 camera_wise.append(currentshot.pose.transform(pt.coordinates).tolist())
-            camera_wise = np.array(camera_wise)
+            camera_wise = np.array(camera_wise)git
             depth = np.median(camera_wise[:, 2])
             print 'DEPTH', depth
             # spawn reference point
@@ -892,7 +853,7 @@ def plot_gaze(reconstruction, data):
                     if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
                         nearpt.color[0] += 30
                         nearpt.color[2] -= 30
-                    else: #if nearpt.color != [255, 255, 0]: #Make this the color of spawned points if you want to see them
+                    #else: #if nearpt.color != [255, 255, 0]: #Make this the color of spawned points if you want to see them
                         nearpt.color = [135, 0, 255]
     return reconstruction
 """
