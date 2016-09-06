@@ -841,7 +841,7 @@ def plot_gaze(reconstruction, data):
         if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
-                if np.allclose(pt2d, xy, atol = 0.3) or np.allclose(xy, pt2d, atol = 0.3):
+                if np.allclose(pt2d, xy, atol = 0.5) or np.allclose(xy, pt2d, atol = 0.5):
                     nearpoints.append(pt)
         #"""
         if not nearpoints:
@@ -858,37 +858,6 @@ def plot_gaze(reconstruction, data):
             pt.color = [135, 0, 255]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
-        """
-        #loop through near points checking for shared camera wise coordinates, only taking front most
-        if not nearpoints:
-            print shotid, 'NO NEAR POINTS'
-        else:
-            for pt in nearpoints:
-                behind = False
-                cam_wise = currentshot.pose.transform(pt.coordinates).tolist()
-                if not unobstructed:
-                    unobstructed.append(cam_wise)
-                else:
-                    for cleared in unobstructed[:]:
-                        if not behind and (np.allclose(cleared[:2], cam_wise[:2], atol = 0.15) or np.allclose(cam_wise[:2], cleared[:2], atol = 0.15)):
-                            if cam_wise[2] < cleared[2]:
-                                print 'BLOCKING'
-                                unobstructed.remove(cleared)
-                            elif cam_wise[2] > cleared[2]:
-                                print 'BEHIND'
-                                behind = True
-                    if not behind:
-                        unobstructed.append(cam_wise)
-            unobstructed = np.array(unobstructed)
-            depth = np.median(unobstructed[:,2])
-            print 'DEPTH', depth
-            #spawn reference point
-            pt = types.Point()
-            pt.coordinates = currentshot.back_project(xy, depth)
-            pt.color = [135, 0, 255]
-            pt.id = 1000000000 + j  # This is needed for more than one dot to show up
-            gaze_points_3d.append(pt)
-        """
         j += 1
 
     #Checks for duplicates in gaze fixations and increases brightness if so
