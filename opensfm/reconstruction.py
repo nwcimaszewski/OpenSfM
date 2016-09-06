@@ -860,23 +860,8 @@ def plot_gaze(reconstruction, data):
             gaze_points_3d.append(pt)
         j += 1
 
-    #Checks for duplicates in gaze fixations and increases brightness if so
-
-    for newpt in gaze_points_3d:
-        dup = False
-        if not gaze_points_3d_filtered: #If filtered is empty -- if this is the first point being checked
-            gaze_points_3d_filtered.append(newpt)
-        else:
-            for oldpt in gaze_points_3d_filtered:
-                if np.allclose(newpt.coordinates, oldpt.coordinates, atol = 5) or np.allclose(oldpt.coordinates, newpt.coordinates, atol = 5):
-                    oldpt.color[0] += 30
-                    oldpt.color[2] -= 30
-                    dup = True
-            if dup == False:
-                gaze_points_3d_filtered.append(newpt)
-
     #Adds points to reconstruction
-    for gazept in gaze_points_3d: #_filtered
+    for gazept in gaze_points_3d:
         reconstruction.add_point(gazept)
         for nearpt in reconstruction.points.values():
                 if np.allclose(gazept.coordinates, nearpt.coordinates, atol=5) or np.allclose(nearpt.coordinates, gazept.coordinates, atol=5):
