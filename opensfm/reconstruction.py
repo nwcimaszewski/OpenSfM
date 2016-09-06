@@ -811,8 +811,7 @@ def plot_gaze(reconstruction, data):
     rs = [9, 11, 13, 15]
     bs = [11, 13, 15, 17]
     j = 0
-    for shot_id in sorted(
-            reconstruction.shots):  # loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
+    for shot_id in sorted(reconstruction.shots):  # loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
         current_shot = reconstruction.shots[shot_id]
         gaze_pts = gaze_points[
             j].split()  # extracting gaze coordinates for current shot -- for SDK ', ' delimiter must be used
@@ -820,11 +819,13 @@ def plot_gaze(reconstruction, data):
         gy = 2 * (float(gaze_pts[1]) / current_shot.camera.height) - 1  # normalizing y
         # I think this is right.  This way, if in center of shot, gives 0, 0, and range on either side is -1, 1
         xy = np.array([gx, gy])  # creating array of 2D gaze cursor coordinates
+        print 'GAZE CURSOR COORDINATES', xy
         near_points = []
         if not np.array_equal(xy, np.array([-1, -1])):  # make sure to check if gaze coordinates are (0, 0)
             for pt in reconstruction.points.values():  # for every point in the reconstruction
                 pt2d = current_shot.project(pt.coordinates)  # extracting 2D coordinates in current shot for point
                 if np.allclose(pt2d, xy, atol=.3) or np.allclose(xy, pt2d, atol=.3):  # if the pixel is close enough
+                    print 'NEAR POINT', pt2d
                     near_points.append(pt)  # add 3D point to list of points close to gaze fixation
 
         if not near_points:
