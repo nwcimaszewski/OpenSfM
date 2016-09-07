@@ -828,6 +828,7 @@ def plot_gaze(reconstruction, data):
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
                 if np.allclose(pt2d, xy, atol = 0.1) or np.allclose(xy, pt2d, atol = 0.1):
+                    pt.color = [135, 0, 255]
                     nearpoints.append(pt)
 
         if not nearpoints:
