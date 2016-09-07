@@ -746,7 +746,7 @@ def tracks_and_images(graph):
 
 
 #Added by nick
-
+"""
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
     fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
@@ -834,13 +834,13 @@ def plot_gaze(reconstruction, data):
         else:
             for pt in nearpoints:
                 camera_wise.append(currentshot.pose.transform(pt.coordinates).tolist())
-            camera_wise = np.array(camera_wise)git
+            camera_wise = np.array(camera_wise)
             depth = np.median(camera_wise[:, 2])
             print 'DEPTH', depth
             # spawn reference point
             pt = types.Point()
             pt.coordinates = currentshot.back_project(xy, depth)
-            pt.color = [135, 0, 255]
+            pt.color = [255, 255, 0]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
         j += 1
@@ -853,10 +853,10 @@ def plot_gaze(reconstruction, data):
                     if (nearpt.color[0]/15 in rs) and (nearpt.color[2]/15 in bs) and (nearpt.color[1] == 0):
                         nearpt.color[0] += 30
                         nearpt.color[2] -= 30
-                    #else: #if nearpt.color != [255, 255, 0]: #Make this the color of spawned points if you want to see them
+                    elif nearpt.color != [255, 255, 0]: #Make this the color of spawned points if you want to see them
                         nearpt.color = [135, 0, 255]
     return reconstruction
-"""
+
 
 def meanshift(reconstruction):
 
