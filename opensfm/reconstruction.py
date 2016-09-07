@@ -869,6 +869,7 @@ def incremental_reconstruction(data):
                 reconstruction = plot_gaze(reconstruction, data)
                 #reconstruction = meanshift(reconstruction)
                 #draw_dist(reconstruction)
+                print len(reconstruction.points), 'POINTS'
                 reconstructions.append(reconstruction)
                 reconstructions = sorted(reconstructions,
                                          key=lambda x: -len(x.shots))
