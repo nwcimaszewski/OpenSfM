@@ -748,15 +748,13 @@ def tracks_and_images(graph):
 #Added by nick
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt will be file where gaze coordinates are stored from ETG
-    fin = open(data.data_path + '/gaze_coordinates_targeted.txt', 'r')
+    fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
     gaze_points = fin.readlines()
     gaze_points_3d = []
     rs = [9, 11, 13, 15]
     bs = [11, 13, 15, 17]
     j = 0
-    selectshots = ['Image085.jpg', 'Image090.jpg', 'Image095.jpg', 'Image100.jpg', 'Image105.jpg', 'Image110.jpg',
-                   'Image115.jpg', 'Image120.jpg', 'Image125.jpg', 'Image130.jpg', 'Image135.jpg', 'Image140.jpg', ]
-    for shot_id in selectshots: #sorted(reconstruction.shots): #loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
+    for shot_id in sorted(reconstruction.shots): #loop through shots in order so as to ensure correct matching of shots and gaze cursor coordinates
         current_shot = reconstruction.shots[shot_id]
         gaze_pts = gaze_points[j].split() #extracting gaze coordinates for current shot -- for SDK ', ' delimiter must be used
         gx = 2*(float(gaze_pts[0])/current_shot.camera.width)-1 #normalizing x
@@ -767,7 +765,7 @@ def plot_gaze(reconstruction, data):
         if not np.array_equal(xy, np.array([-1,-1])):  # make sure to check if gaze coordinates are (0, 0)
             for pt in reconstruction.points.values(): #for every point in the reconstruction
                 pt2d = current_shot.project(pt.coordinates) #extracting 2D coordinates in current shot for point
-                if np.allclose(pt2d, xy, atol = .05) or np.allclose(xy, pt2d, atol = .05): #if the pixel is close enough
+                if np.allclose(pt2d, xy, atol = .5) or np.allclose(xy, pt2d, atol = .5): #if the pixel is close enough
                     near_points.append(pt) #add 3D point to list of points close to gaze fixation
 
         if not near_points:
@@ -786,20 +784,20 @@ def plot_gaze(reconstruction, data):
             xyz = [x, y, z]
             pt = types.Point()
             pt.coordinates = xyz
-            pt.color = [255, 0, 135]
+            pt.color = [135, 0, 255]
             pt.id = 1000000000 + j  # This is needed for more than one dot to show up
             gaze_points_3d.append(pt)
         j += 1
 
     for gaze_pt in gaze_points_3d:
         reconstruction.add_point(gaze_pt)
-        """for near_pt in reconstruction.points.values():
+        for near_pt in reconstruction.points.values():
                 if np.allclose(gaze_pt.coordinates, near_pt.coordinates, atol=5) or np.allclose(near_pt.coordinates, gaze_pt.coordinates, atol=5):
                     if (near_pt.color[0]/15 in rs) and (near_pt.color[2]/15 in bs) and (near_pt.color[1] == 0):
                         near_pt.color[0] += 30
                         near_pt.color[2] -= 30
                     else:
-                        near_pt.color = [135, 0, 255]"""
+                        near_pt.color = [135, 0, 255]
     return reconstruction
 
 
