@@ -803,15 +803,16 @@ def plot_gaze(reconstruction, data):
 """
 def plot_gaze(reconstruction, data):
     #gaze_coordinates.txt is file where gaze coordinates are stored from ETG
-    fin = open(data.data_path + '/gaze_coordinates.txt', 'r')
+    fin = open(data.data_path + '/gaze_coordinates_targeted.txt', 'r')
     gaze_points = fin.readlines()
     gaze_points_3d = []
     gaze_points_3d_filtered = []
     rs = [9, 11, 13, 15]
     bs = [11, 13, 15, 17]
     j = 0
+    selectshots = ['Image085.jpg', 'Image090.jpg', 'Image095.jpg', 'Image100.jpg','Image105.jpg','Image110.jpg','Image115.jpg','Image120.jpg','Image125.jpg','Image130.jpg','Image135.jpg','Image140.jpg',]
     #loop through each photo for every pair of cursor coordinates
-    for shotid in sorted(reconstruction.shots):
+    for shotid in selectshots: #sorted(reconstruction.shots):
         currentshot = reconstruction.shots[shotid]
         print shotid
         #extract and normalize gaze cursor coordinates
@@ -826,7 +827,7 @@ def plot_gaze(reconstruction, data):
         if not np.array_equal(xy, np.array([-1,-1])):  # checks against (0,0) gaze cursor coordinates
             for pt in reconstruction.points.values():
                 pt2d = currentshot.project(pt.coordinates)
-                if np.allclose(pt2d, xy, atol = 0.01) or np.allclose(xy, pt2d, atol = 0.01):
+                if np.allclose(pt2d, xy, atol = 0.1) or np.allclose(xy, pt2d, atol = 0.1):
                     nearpoints.append(pt)
 
         if not nearpoints:
